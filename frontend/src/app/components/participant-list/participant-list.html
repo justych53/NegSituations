@@ -1,0 +1,12 @@
+<h2>Участники</h2>
+<a [routerLink]="['/participants/new']">Добавить участника</a>
+<table border="1" cellpadding="5">
+  <tr><th>ID</th><th>Имя</th><th>Должность</th><th>Действия</th></tr>
+  <tr *ngFor="let p of participants">
+  <td>{{ p.id }}</td>
+  <td>{{ p.name }}</td>
+  <td>{{ p.position }}</td>
+  <td><button (click)="delete(p.id)">Удалить</button>
+  <a [routerLink]="['/participants', p.id]">Редактировать</a></td>
+</tr>
+</table>

@@ -1,0 +1,30 @@
+<h2>Записи об отказах</h2>
+<a routerLink="/failures/new">Создать новую запись</a>
+<table border="1" cellpadding="5">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Описание</th>
+      <th>Результат</th>
+      <th>Участники</th>
+      <th>Действия</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr *ngFor="let r of records">
+      <td>{{ r.id }}</td>
+      <td>{{ r.descFailure }}</td>
+      <td>{{ r.resInvest }}</td>
+      <td>
+        <span *ngFor="let fp of r.failureParticipants; let last = last">
+          {{ fp.participant?.name || fp.name }} ({{ fp.participant?.position || fp.position }})<span *ngIf="!last">, </span>
+        </span>
+        <span *ngIf="!r.failureParticipants || r.failureParticipants.length === 0">Нет участников</span>
+      </td>
+      <td>
+        <a [routerLink]="['/failures', r.id]">Редактировать</a>
+        <button (click)="delete(r.id)">Удалить</button>
+      </td>
+    </tr>
+  </tbody>
+</table>

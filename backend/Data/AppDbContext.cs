@@ -1,0 +1,31 @@
+using Microsoft.EntityFrameworkCore;
+using backend.Models;
+
+namespace backend.Data;
+
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+
+    public DbSet<FailureRecord> FailureRecords => Set<FailureRecord>();
+    public DbSet<Participant> Participants => Set<Participant>();
+    public DbSet<FailureParticipant> FailureParticipants => Set<FailureParticipant>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<FailureParticipant>()
+            .HasKey(fp => new { fp.FailureRecordId, fp.ParticipantId });
+
+        modelBuilder.Entity<FailureParticipant>()
+            .HasOne(fp => fp.FailureRecord)
+            .WithMany(fr => fr.FailureParticipants)
+            .HasForeignKey(fp => fp.FailureRecordId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FailureParticipant>()
+            .HasOne(fp => fp.Participant)
+            .WithMany(p => p.FailureParticipants)
+            .HasForeignKey(fp => fp.ParticipantId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

@@ -1,0 +1,38 @@
+<h2>{{ isEdit ? 'Редактирование' : 'Новая запись' }} об отказе</h2>
+
+<div *ngIf="!showPercents; else resultBlock">
+  <form (ngSubmit)="save()">
+    <div>
+      <label>Описание отказа:</label><br/>
+      <textarea [(ngModel)]="descFailure" name="desc" required></textarea>
+    </div>
+    <div>
+      <label>Результат расследования:</label><br/>
+      <textarea [(ngModel)]="resInvest" name="res" required></textarea>
+    </div>
+    <div>
+      <label>Участники отказа:</label><br/>
+      <div *ngIf="allParticipants.length === 0">
+        <em>Нет участников. Сначала добавьте участников.</em>
+      </div>
+      <div *ngFor="let p of allParticipants">
+        <label>
+          <input type="checkbox"
+                 [checked]="isSelected(p.id)"
+                 (change)="toggleParticipant(p.id)"/>
+          {{ p.name }} ({{ p.position }})
+        </label>
+      </div>
+    </div>
+    <button type="submit">Сохранить</button>
+    <a routerLink="/failures">Отмена</a>
+  </form>
+</div>
+
+<ng-template #resultBlock>
+  <h3>Запись сохранена!</h3>
+  <p>Организационная: {{ org }}%</p>
+  <p>Техническая: {{ tech }}%</p>
+  <p>Психофизиологическая: {{ psycho }}%</p>
+  <a routerLink="/failures">Вернуться к списку</a>
+</ng-template>
