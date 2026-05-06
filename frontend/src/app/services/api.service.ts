@@ -48,4 +48,24 @@ export class ApiService {
   updateParticipant(id: number, data: any): Observable<any> {
   return this.http.put(`${this.baseUrl}/Participants/${id}`, data);
   }
+  getFactors(): Observable<any[]> {
+  return this.http.get<any[]>(`${this.baseUrl}/Factors`);
+}
+
+createFactor(name: string): Observable<any> {
+  return this.http.post(`${this.baseUrl}/Factors`, { name });
+}
+
+deleteFactor(id: number): Observable<any> {
+  return this.http.delete(`${this.baseUrl}/Factors/${id}`);
+}
+
+// Comparison Matrix
+getComparisonMatrix(failureId: number): Observable<any[]> {
+  return this.http.get<any[]>(`${this.baseUrl}/ComparisonMatrices/by-failure/${failureId}`);
+}
+
+saveComparisonMatrix(data: any): Observable<any> {
+  return this.http.post(`${this.baseUrl}/ComparisonMatrices`, data);
+}
 }

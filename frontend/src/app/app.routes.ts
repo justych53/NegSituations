@@ -4,6 +4,8 @@ import { FailureListComponent } from './components/failure-list/failure-list';
 import { FailureFormComponent } from './components/failure-form/failure-form';
 import { ParticipantListComponent } from './components/participant-list/participant-list';
 import { ParticipantFormComponent } from './components/participant-form/participant-form';
+import { ComparisonMatrixComponent } from './components/comparison-matrix/comparison-matrix';
+import { FactorsListComponent } from './components/factors-list/factors-list';
 
 export const routes: Routes = [
   { path: 'failures', component: FailureListComponent },
@@ -12,6 +14,8 @@ export const routes: Routes = [
   { path: 'participants', component: ParticipantListComponent },
   { path: 'participants/new', component: ParticipantFormComponent },
   { path: 'participants/:id', component: ParticipantFormComponent },
+  { path: 'matrix', component: ComparisonMatrixComponent },
+  { path: 'factors', component: FactorsListComponent },
   { path: '', redirectTo: '/failures', pathMatch: 'full' }
 ];
 

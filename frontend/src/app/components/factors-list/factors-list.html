@@ -1,0 +1,15 @@
+<h2>Факторы для МАИ</h2>
+
+<div>
+  <input [(ngModel)]="newFactorName" placeholder="Название фактора"/>
+  <button (click)="add()">Добавить</button>
+</div>
+
+<ul>
+  <li *ngFor="let f of factors">
+    {{ f.name }}
+    <button (click)="delete(f.id)">Удалить</button>
+  </li>
+</ul>
+
+<a routerLink="/failures">← Назад к отказам</a>

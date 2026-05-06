@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
+using backend.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +35,18 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+    db.Database.ExecuteSqlRaw("PRAGMA foreign_keys = ON;");
+    // Сидируем факторы, если их нет
+if (!db.Factors.Any())
+{
+    db.Factors.AddRange(
+        new Factor { Name = "Организационный" },
+        new Factor { Name = "Технический" },
+        new Factor { Name = "Психофизиологический" },
+        new Factor { Name = "Внешний" }
+    );
+    db.SaveChanges();
+}
 }
 
 app.UseCors("AllowAngular");
