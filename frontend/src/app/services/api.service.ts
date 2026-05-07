@@ -68,4 +68,11 @@ getComparisonMatrix(failureId: number): Observable<any[]> {
 saveComparisonMatrix(data: any): Observable<any> {
   return this.http.post(`${this.baseUrl}/ComparisonMatrices`, data);
 }
+getParticipantMatrix(failureId: number): Observable<any[]> {
+  return this.http.get<any[]>(`${this.baseUrl}/ParticipantMatrices/by-failure/${failureId}`);
+}
+
+saveParticipantMatrix(data: any): Observable<any> {
+  return this.http.post(`${this.baseUrl}/ParticipantMatrices`, data);
+}
 }

@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<FailureParticipant> FailureParticipants => Set<FailureParticipant>();
     public DbSet<Factor> Factors => Set<Factor>();
     public DbSet<ComparisonMatrix> ComparisonMatrices => Set<ComparisonMatrix>();
+    public DbSet<ParticipantMatrix> ParticipantMatrices => Set<ParticipantMatrix>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,5 +41,16 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(cm => cm.FactorBId)
             .OnDelete(DeleteBehavior.Cascade);
-    }
+        modelBuilder.Entity<ParticipantMatrix>()
+            .HasOne(pm => pm.ParticipantA)
+            .WithMany()
+            .HasForeignKey(pm => pm.ParticipantAId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ParticipantMatrix>()
+            .HasOne(pm => pm.ParticipantB)
+            .WithMany()
+            .HasForeignKey(pm => pm.ParticipantBId)
+            .OnDelete(DeleteBehavior.Cascade);
+            }
 }

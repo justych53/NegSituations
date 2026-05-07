@@ -45,6 +45,18 @@ if (!db.Factors.Any())
         new Factor { Name = "Психофизиологический" },
         new Factor { Name = "Внешний" }
     );
+    db.Database.ExecuteSqlRaw(@"
+    CREATE TABLE IF NOT EXISTS ParticipantMatrices (
+        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+        FailureRecordId INTEGER NOT NULL,
+        ParticipantAId INTEGER NOT NULL,
+        ParticipantBId INTEGER NOT NULL,
+        Score REAL NOT NULL,
+        FOREIGN KEY (FailureRecordId) REFERENCES FailureRecords(Id) ON DELETE CASCADE,
+        FOREIGN KEY (ParticipantAId) REFERENCES Participants(Id) ON DELETE CASCADE,
+        FOREIGN KEY (ParticipantBId) REFERENCES Participants(Id) ON DELETE CASCADE
+    );
+");
     db.SaveChanges();
 }
 }
