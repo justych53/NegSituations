@@ -1,0 +1,205 @@
+<div *ngIf="failure" class="container mt-4">
+  <h2>Отказ #{{ failure.id }}</h2>
+  <div class="card mb-3">
+    <div class="card-body">
+      <h5 class="card-title">{{ failure.descFailure }}</h5>
+      <p class="card-text"><strong>Результат:</strong> {{ failure.resInvest }}</p>
+      <p>
+        <strong>Участники:</strong>
+        <span *ngFor="let p of failure.participants; let last = last">
+          {{ p.name }} ({{ p.position }})<span *ngIf="!last">, </span>
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Вкладки -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'info'" (click)="activeTab = 'info'">Информация</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'factors'" (click)="activeTab = 'factors'">Матрица факторов</button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'participants'" (click)="activeTab = 'participants'">Оценка участников</button>
+    </li>
+  </ul>
+
+  <!-- ======================== ИНФОРМАЦИЯ ======================== -->
+  <div *ngIf="activeTab === 'info'">
+    <a [routerLink]="['/failures', failure.id, 'edit']" class="btn btn-warning me-2">Редактировать</a>
+    <button (click)="deleteFailure()" class="btn btn-danger">Удалить</button>
+  </div>
+
+  <!-- ======================== ФАКТОРЫ ======================== -->
+  <div *ngIf="activeTab === 'factors'">
+    <saaty-scale></saaty-scale>
+    <div *ngIf="factors.length > 1; else noFactors">
+      <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+          <thead class="table-light">
+            <tr>
+              <th></th>
+              <th *ngFor="let f of factors">{{ f.name }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let fA of factors; let i = index">
+              <td class="table-light"><strong>{{ fA.name }}</strong></td>
+              <td *ngFor="let fB of factors; let j = index">
+                <span *ngIf="i === j"><strong>1</strong></span>
+                <select *ngIf="i < j" class="form-select form-select-sm" 
+                        [ngModel]="getFactorScore(fA.id, fB.id)" 
+                        (ngModelChange)="setFactorScore(fA.id, fB.id, $event)">
+                  <option [ngValue]="9">9</option><option [ngValue]="8">8</option>
+                  <option [ngValue]="7">7</option><option [ngValue]="6">6</option>
+                  <option [ngValue]="5">5</option><option [ngValue]="4">4</option>
+                  <option [ngValue]="3">3</option><option [ngValue]="2">2</option>
+                  <option [ngValue]="1">1</option>
+                  <option [ngValue]="1/2">1/2</option><option [ngValue]="1/3">1/3</option>
+                  <option [ngValue]="1/4">1/4</option><option [ngValue]="1/5">1/5</option>
+                  <option [ngValue]="1/6">1/6</option><option [ngValue]="1/7">1/7</option>
+                  <option [ngValue]="1/8">1/8</option><option [ngValue]="1/9">1/9</option>
+                </select>
+                <span *ngIf="i > j" class="text-muted">{{ getFactorInverse(fB.id, fA.id) | number:'1.3-3' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button (click)="saveFactors()" class="btn btn-success me-2">Сохранить</button>
+      <span *ngIf="factorSaved" class="text-success">✓ Сохранено</span>
+
+      <!-- Результаты факторов -->
+      <div *ngIf="factorWeights.length > 0" class="card mt-3">
+        <div class="card-header"><strong>Веса факторов</strong></div>
+        <div class="card-body">
+          <table class="table table-bordered text-center">
+            <tr><th>Фактор</th><th>Вес</th><th>%</th></tr>
+            <tr *ngFor="let f of factors; let i = index">
+              <td>{{ f.name }}</td>
+              <td>{{ factorWeights[i] | number:'1.3-3' }}</td>
+              <td><span class="badge bg-primary">{{ getFactorPercent(i) }}%</span></td>
+            </tr>
+          </table>
+
+          <!-- Согласованность -->
+          <div class="mt-2">
+            <p>λ<sub>max</sub> = {{ lambdaMaxFactors | number:'1.3-3' }}</p>
+            <p>CI = {{ ciFactors | number:'1.3-3' }} | CR = {{ crFactors | number:'1.3-3' }} = {{ (crFactors! * 100) | number:'1.1-1' }}%</p>
+            <span *ngIf="isConsistentFactors" class="badge bg-success">Согласована (CR &lt; 10%)</span>
+            <span *ngIf="!isConsistentFactors" class="badge bg-danger">Не согласована (CR ≥ 10%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ng-template #noFactors>
+      <div class="alert alert-warning">Недостаточно факторов. <a routerLink="/factors">Добавьте факторы</a>.</div>
+    </ng-template>
+  </div>
+
+  <!-- ======================== УЧАСТНИКИ ПО ФАКТОРАМ ======================== -->
+  <div *ngIf="activeTab === 'participants'">
+    <div *ngIf="factors.length > 0 && participants.length > 1; else noData">
+      <saaty-scale></saaty-scale>
+
+      <!-- Выбор фактора -->
+      <div class="mb-3">
+        <label class="form-label"><strong>Фактор:</strong></label>
+        <select class="form-select" [(ngModel)]="selectedFactorIndex">
+          <option *ngFor="let f of factors; let i = index" [ngValue]="i">{{ f.name }}</option>
+        </select>
+      </div>
+
+      <!-- Матрица для выбранного фактора -->
+      <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+          <thead class="table-light">
+            <tr>
+              <th></th>
+              <th *ngFor="let p of participants">{{ p.name }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let pA of participants; let i = index">
+              <td class="table-light"><strong>{{ pA.name }}</strong></td>
+              <td *ngFor="let pB of participants; let j = index">
+                <span *ngIf="i === j"><strong>1</strong></span>
+                <select *ngIf="i < j" class="form-select form-select-sm"
+                        [ngModel]="getParticipantScore(selectedFactorIndex, pA.id, pB.id)" 
+                        (ngModelChange)="setParticipantScore(selectedFactorIndex, pA.id, pB.id, $event)">
+                  <option [ngValue]="9">9</option><option [ngValue]="8">8</option>
+                  <option [ngValue]="7">7</option><option [ngValue]="6">6</option>
+                  <option [ngValue]="5">5</option><option [ngValue]="4">4</option>
+                  <option [ngValue]="3">3</option><option [ngValue]="2">2</option>
+                  <option [ngValue]="1">1</option>
+                  <option [ngValue]="1/2">1/2</option><option [ngValue]="1/3">1/3</option>
+                  <option [ngValue]="1/4">1/4</option><option [ngValue]="1/5">1/5</option>
+                  <option [ngValue]="1/6">1/6</option><option [ngValue]="1/7">1/7</option>
+                  <option [ngValue]="1/8">1/8</option><option [ngValue]="1/9">1/9</option>
+                </select>
+                <span *ngIf="i > j" class="text-muted">{{ getParticipantInverse(selectedFactorIndex, pB.id, pA.id) | number:'1.3-3' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <button (click)="saveParticipantsForFactor(selectedFactorIndex)" class="btn btn-success me-2">Сохранить матрицу</button>
+      <span *ngIf="participantSavedByFactor[selectedFactorIndex]" class="text-success">✓ Сохранено</span>
+
+      <!-- Локальные веса для фактора -->
+      <div *ngIf="currentParticipantWeights.length > 0" class="card mt-3">
+        <div class="card-header"><strong>Локальные веса — {{ factors[selectedFactorIndex].name }}</strong></div>
+        <div class="card-body">
+          <table class="table table-bordered text-center">
+            <tr><th>Участник</th><th>Локальный вес</th><th>%</th></tr>
+            <tr *ngFor="let p of participants; let i = index">
+              <td>{{ p.name }} ({{ p.position }})</td>
+              <td>{{ getParticipantWeightByFactor(selectedFactorIndex, i) | number:'1.3-3' }}</td>
+              <td><span class="badge bg-info">{{ getParticipantPercentByFactor(selectedFactorIndex, i) }}%</span></td>
+            </tr>
+          </table>
+
+          <div class="mt-2">
+            <p>λ<sub>max</sub> = {{ lambdaMaxByFactor[selectedFactorIndex] | number:'1.3-3' }}</p>
+            <p>CI = {{ ciByFactor[selectedFactorIndex] | number:'1.3-3' }} | CR = {{ crByFactor[selectedFactorIndex] | number:'1.3-3' }} = {{ (crByFactor[selectedFactorIndex] * 100) | number:'1.1-1' }}%</p>
+            <span *ngIf="isConsistentByFactor[selectedFactorIndex]" class="badge bg-success">Согласована (CR &lt; 10%)</span>
+            <span *ngIf="!isConsistentByFactor[selectedFactorIndex]" class="badge bg-danger">Не согласована (CR ≥ 10%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- СИНТЕЗ -->
+      <div *ngIf="synthesizedWeights.length > 0" class="card mt-4">
+        <div class="card-header"><strong>Синтез итоговых весов участников</strong></div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered text-center">
+              <thead>
+                <tr>
+                  <th>Участник</th>
+                  <th *ngFor="let f of factors">{{ f.name }}</th>
+                  <th>Итоговый вес</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let sw of synthesizedWeights">
+                  <td>{{ sw.name }}</td>
+                  <td *ngFor="let c of sw.contributions">{{ c.contribution | number:'1.3-3' }}</td>
+                  <td><span class="badge bg-danger">{{ getSynthesisPercent(sw.weight) }}%</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noData>
+      <div class="alert alert-warning" *ngIf="factors.length === 0">Нет факторов. Сначала заполните матрицу факторов.</div>
+      <div class="alert alert-warning" *ngIf="participants.length <= 1">Недостаточно участников для сравнения.</div>
+    </ng-template>
+  </div>
+</div>

@@ -16,12 +16,33 @@ public class FailureRecordsController : ControllerBase
         _context = context;
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<object>>> GetAll()
+    {
+        return await _context.FailureRecords
+            .Include(fr => fr.Participants)
+            .Select(fr => new
+            {
+                fr.Id,
+                fr.DescFailure,
+                fr.ResInvest,
+                Participants = fr.Participants.Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Position
+                })
+            })
+            .ToListAsync();
+    }
+
     [HttpGet("{id}")]
 public async Task<ActionResult<object>> GetById(int id)
 {
     var record = await _context.FailureRecords
-        .Include(fr => fr.FailureParticipants)
-            .ThenInclude(fp => fp.Participant)
+        .Include(fr => fr.Participants)
+        .Include(fr => fr.FailureFactors)
+            .ThenInclude(ff => ff.Factor)
         .FirstOrDefaultAsync(fr => fr.Id == id);
 
     if (record == null) return NotFound();
@@ -31,45 +52,19 @@ public async Task<ActionResult<object>> GetById(int id)
         record.Id,
         record.DescFailure,
         record.ResInvest,
-        FailureParticipants = record.FailureParticipants.Select(fp => new
+        Participants = record.Participants.Select(p => new
         {
-            fp.FailureRecordId,
-            fp.ParticipantId,
-            Participant = fp.Participant != null ? new
-            {
-                fp.Participant.Id,
-                fp.Participant.Name,
-                fp.Participant.Position
-            } : null
+            p.Id,
+            p.Name,
+            p.Position
+        }),
+        Factors = record.FailureFactors.Select(ff => new
+        {
+            ff.Factor.Id,
+            ff.Factor.Name
         })
     };
 }
-[HttpGet]
-public async Task<ActionResult<IEnumerable<object>>> GetAll()
-{
-    return await _context.FailureRecords
-        .Include(fr => fr.FailureParticipants)
-            .ThenInclude(fp => fp.Participant)
-        .Select(fr => new
-        {
-            fr.Id,
-            fr.DescFailure,
-            fr.ResInvest,
-            FailureParticipants = fr.FailureParticipants.Select(fp => new
-            {
-                fp.FailureRecordId,
-                fp.ParticipantId,
-                Participant = fp.Participant != null ? new
-                {
-                    fp.Participant.Id,
-                    fp.Participant.Name,
-                    fp.Participant.Position
-                } : null
-            })
-        })
-        .ToListAsync();
-}
-
 
     [HttpPost]
     public async Task<ActionResult<object>> Create([FromBody] CreateFailureRecordDto dto)
@@ -80,11 +75,22 @@ public async Task<ActionResult<IEnumerable<object>>> GetAll()
             ResInvest = dto.ResInvest
         };
 
-        if (dto.ParticipantIds != null)
+        if (dto.Participants != null)
         {
-            foreach (var pid in dto.ParticipantIds)
+            foreach (var p in dto.Participants)
             {
-                record.FailureParticipants.Add(new FailureParticipant { ParticipantId = pid });
+                record.Participants.Add(new Participant
+                {
+                    Name = p.Name,
+                    Position = p.Position
+                });
+            }
+        }
+        if (dto.FactorIds != null)
+        {
+            foreach (var fid in dto.FactorIds)
+            {
+                record.FailureFactors.Add(new FailureFactor { FactorId = fid });
             }
         }
 
@@ -96,21 +102,29 @@ public async Task<ActionResult<IEnumerable<object>>> GetAll()
         int tech = rnd.Next(0, 101 - org);
         int psycho = 100 - org - tech;
 
-        return CreatedAtAction(nameof(GetAll), new { id = record.Id }, new
+        return CreatedAtAction(nameof(GetById), new { id = record.Id }, new
         {
             record.Id,
             record.DescFailure,
             record.ResInvest,
             OrganizationalPercent = org,
             TechnicalPercent = tech,
-            PsychophysiologicalPercent = psycho
+            PsychophysiologicalPercent = psycho,
+            Participants = record.Participants.Select(p => new
+            {
+                p.Id,
+                p.Name,
+                p.Position
+            })
         });
     }
+
     [HttpPut("{id}")]
 public async Task<IActionResult> Update(int id, [FromBody] CreateFailureRecordDto dto)
 {
     var record = await _context.FailureRecords
-        .Include(fr => fr.FailureParticipants)
+        .Include(fr => fr.Participants)
+        .Include(fr => fr.FailureFactors)
         .FirstOrDefaultAsync(fr => fr.Id == id);
 
     if (record == null) return NotFound();
@@ -118,18 +132,35 @@ public async Task<IActionResult> Update(int id, [FromBody] CreateFailureRecordDt
     record.DescFailure = dto.DescFailure;
     record.ResInvest = dto.ResInvest;
 
-    // Удаляем старые связи
-    record.FailureParticipants.Clear();
+    // Удаляем старых участников
+    _context.Participants.RemoveRange(record.Participants);
 
-    // Добавляем новые
-    if (dto.ParticipantIds != null)
+    // Добавляем новых участников
+    if (dto.Participants != null)
     {
-        foreach (var pid in dto.ParticipantIds)
+        foreach (var p in dto.Participants)
         {
-            record.FailureParticipants.Add(new FailureParticipant
+            record.Participants.Add(new Participant
+            {
+                Name = p.Name,
+                Position = p.Position,
+                FailureRecordId = id
+            });
+        }
+    }
+
+    // Очищаем старые связи с факторами
+    _context.FailureFactors.RemoveRange(record.FailureFactors);
+
+    // Добавляем новые связи с факторами
+    if (dto.FactorIds != null)
+    {
+        foreach (var fid in dto.FactorIds)
+        {
+            _context.FailureFactors.Add(new FailureFactor
             {
                 FailureRecordId = id,
-                ParticipantId = pid
+                FactorId = fid
             });
         }
     }
@@ -143,6 +174,7 @@ public async Task<IActionResult> Update(int id, [FromBody] CreateFailureRecordDt
     {
         var record = await _context.FailureRecords.FindAsync(id);
         if (record == null) return NotFound();
+
         _context.FailureRecords.Remove(record);
         await _context.SaveChangesAsync();
         return NoContent();
@@ -153,5 +185,12 @@ public class CreateFailureRecordDto
 {
     public string DescFailure { get; set; } = string.Empty;
     public string ResInvest { get; set; } = string.Empty;
-    public List<int>? ParticipantIds { get; set; }
+    public List<ParticipantDto>? Participants { get; set; }
+    public List<int>? FactorIds { get; set; }  // ← новое поле
+}
+
+public class ParticipantDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Position { get; set; } = string.Empty;
 }

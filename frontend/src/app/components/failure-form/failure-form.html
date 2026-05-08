@@ -1,38 +1,51 @@
 <h2>{{ isEdit ? 'Редактирование' : 'Новая запись' }} об отказе</h2>
 
-<div *ngIf="!showPercents; else resultBlock">
-  <form (ngSubmit)="save()">
-    <div>
-      <label>Описание отказа:</label><br/>
-      <textarea [(ngModel)]="descFailure" name="desc" required></textarea>
-    </div>
-    <div>
-      <label>Результат расследования:</label><br/>
-      <textarea [(ngModel)]="resInvest" name="res" required></textarea>
-    </div>
-    <div>
-      <label>Участники отказа:</label><br/>
-      <div *ngIf="allParticipants.length === 0">
-        <em>Нет участников. Сначала добавьте участников.</em>
-      </div>
-      <div *ngFor="let p of allParticipants">
-        <label>
-          <input type="checkbox"
-                 [checked]="isSelected(p.id)"
-                 (change)="toggleParticipant(p.id)"/>
-          {{ p.name }} ({{ p.position }})
-        </label>
-      </div>
-    </div>
-    <button type="submit">Сохранить</button>
-    <a routerLink="/failures">Отмена</a>
-  </form>
+<div class="mb-3">
+  <label class="form-label">Описание отказа</label>
+  <textarea [(ngModel)]="descFailure" name="desc" class="form-control" rows="3" required></textarea>
 </div>
 
-<ng-template #resultBlock>
-  <h3>Запись сохранена!</h3>
-  <p>Организационная: {{ org }}%</p>
-  <p>Техническая: {{ tech }}%</p>
-  <p>Психофизиологическая: {{ psycho }}%</p>
-  <a routerLink="/failures">Вернуться к списку</a>
-</ng-template>
+<div class="mb-3">
+  <label class="form-label">Результат расследования</label>
+  <textarea [(ngModel)]="resInvest" name="res" class="form-control" rows="3" required></textarea>
+</div>
+
+<!-- Участники -->
+<div class="card mb-3">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <strong>Участники отказа</strong>
+    <button type="button" class="btn btn-sm btn-outline-primary" (click)="addParticipant()">+ Добавить</button>
+  </div>
+  <div class="card-body">
+    <div *ngFor="let p of participants; let i = index" class="row mb-2">
+      <div class="col-5">
+        <input [(ngModel)]="p.name" name="name{{i}}" class="form-control" placeholder="Имя" required/>
+      </div>
+      <div class="col-5">
+        <input [(ngModel)]="p.position" name="pos{{i}}" class="form-control" placeholder="Должность" required/>
+      </div>
+      <div class="col-2">
+        <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeParticipant(i)">✕</button>
+      </div>
+    </div>
+    <p *ngIf="participants.length === 0" class="text-muted mb-0">Нет участников</p>
+  </div>
+</div>
+
+<!-- Факторы -->
+<div class="card mb-3">
+  <div class="card-header"><strong>Факторы для анализа</strong></div>
+  <div class="card-body">
+    <div *ngFor="let f of allFactors" class="form-check">
+      <input class="form-check-input" type="checkbox" 
+             [checked]="isFactorSelected(f.id)" 
+             (change)="toggleFactor(f.id)" 
+             [id]="'factor'+f.id"/>
+      <label class="form-check-label" [for]="'factor'+f.id">{{ f.name }}</label>
+    </div>
+    <p *ngIf="allFactors.length === 0" class="text-muted mb-0">Нет доступных факторов</p>
+  </div>
+</div>
+
+<button type="button" class="btn btn-success me-2" (click)="save()">Сохранить</button>
+<a routerLink="/failures" class="btn btn-secondary">Отмена</a>

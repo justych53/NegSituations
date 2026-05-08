@@ -5,6 +5,8 @@ public class ParticipantMatrix
     public int Id { get; set; }
     public int FailureRecordId { get; set; }
     public FailureRecord FailureRecord { get; set; } = null!;
+    public int FactorId { get; set; }
+    public Factor Factor { get; set; } = null!;
     public int ParticipantAId { get; set; }
     public Participant ParticipantA { get; set; } = null!;
     public int ParticipantBId { get; set; }

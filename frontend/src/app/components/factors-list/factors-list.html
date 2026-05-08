@@ -1,15 +1,22 @@
-<h2>Факторы для МАИ</h2>
-
-<div>
-  <input [(ngModel)]="newFactorName" placeholder="Название фактора"/>
-  <button (click)="add()">Добавить</button>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Факторы для анализа</h2>
 </div>
 
-<ul>
-  <li *ngFor="let f of factors">
-    {{ f.name }}
-    <button (click)="delete(f.id)">Удалить</button>
-  </li>
-</ul>
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="input-group">
+      <input [(ngModel)]="newFactorName" class="form-control" placeholder="Название нового фактора"/>
+      <button (click)="add()" class="btn btn-primary">Добавить</button>
+    </div>
+  </div>
+</div>
 
-<a routerLink="/failures">← Назад к отказам</a>
+<div class="list-group">
+  <div *ngFor="let f of factors" class="list-group-item d-flex justify-content-between align-items-center">
+    {{ f.name }}
+    <button (click)="delete(f.id)" class="btn btn-outline-danger btn-sm">Удалить</button>
+  </div>
+  <p *ngIf="factors.length === 0" class="text-muted p-3">Нет факторов</p>
+</div>
+
+<a routerLink="/failures" class="btn btn-secondary mt-3">← Назад к отказам</a>

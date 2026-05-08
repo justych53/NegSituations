@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ParticipantForm } from './participant-form';
+import { SaatyScale } from './saaty-scale';
 
-describe('ParticipantForm', () => {
-  let component: ParticipantForm;
-  let fixture: ComponentFixture<ParticipantForm>;
+describe('SaatyScale', () => {
+  let component: SaatyScale;
+  let fixture: ComponentFixture<SaatyScale>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ParticipantForm]
+      imports: [SaatyScale]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ParticipantForm);
+    fixture = TestBed.createComponent(SaatyScale);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

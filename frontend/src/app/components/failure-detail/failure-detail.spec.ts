@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ParticipantMatrix } from './participant-matrix';
+import { FailureDetailComponent } from './failure-detail';
 
-describe('ParticipantMatrix', () => {
-  let component: ParticipantMatrix;
-  let fixture: ComponentFixture<ParticipantMatrix>;
+describe('FailureDetail', () => {
+  let component: FailureDetailComponent;
+  let fixture: ComponentFixture<FailureDetailComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ParticipantMatrix]
+      imports: [FailureDetailComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ParticipantMatrix);
+    fixture = TestBed.createComponent(FailureDetailComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

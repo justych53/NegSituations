@@ -16,39 +16,43 @@ public class ParticipantMatricesController : ControllerBase
         _context = context;
     }
 
-    [HttpGet("by-failure/{failureId}")]
-    public async Task<ActionResult<IEnumerable<object>>> GetByFailure(int failureId)
+    // Получить матрицу для отказа по фактору
+    [HttpGet("by-failure/{failureId}/factor/{factorId}")]
+    public async Task<ActionResult<IEnumerable<object>>> GetByFailureAndFactor(int failureId, int factorId)
     {
         var matrix = await _context.ParticipantMatrices
-            .Where(pm => pm.FailureRecordId == failureId)
+            .Where(pm => pm.FailureRecordId == failureId && pm.FactorId == factorId)
             .Select(pm => new
             {
                 pm.Id,
                 pm.FailureRecordId,
+                pm.FactorId,
                 pm.ParticipantAId,
                 pm.ParticipantBId,
-                pm.Score,
-                ParticipantAName = pm.ParticipantA.Name,
-                ParticipantBName = pm.ParticipantB.Name
+                pm.Score
             })
             .ToListAsync();
 
-        return matrix;
+        return Ok(matrix);
     }
 
-    [HttpPost]
-    public async Task<ActionResult> Save([FromBody] SaveParticipantMatrixDto dto)
+    // Сохранить матрицу для отказа по фактору
+    [HttpPost("by-factor")]
+    public async Task<ActionResult> SaveByFactor([FromBody] SaveParticipantMatrixDto dto)
     {
+        // Удаляем старые записи для этого отказа и фактора
         var oldEntries = await _context.ParticipantMatrices
-            .Where(pm => pm.FailureRecordId == dto.FailureRecordId)
+            .Where(pm => pm.FailureRecordId == dto.FailureRecordId && pm.FactorId == dto.FactorId)
             .ToListAsync();
         _context.ParticipantMatrices.RemoveRange(oldEntries);
 
+        // Добавляем новые
         foreach (var entry in dto.Entries)
         {
             _context.ParticipantMatrices.Add(new ParticipantMatrix
             {
                 FailureRecordId = dto.FailureRecordId,
+                FactorId = dto.FactorId,
                 ParticipantAId = entry.participantAId,
                 ParticipantBId = entry.participantBId,
                 Score = entry.score
@@ -59,6 +63,7 @@ public class ParticipantMatricesController : ControllerBase
         return Ok();
     }
 
+    // Удалить все матрицы для отказа
     [HttpDelete("by-failure/{failureId}")]
     public async Task<IActionResult> DeleteByFailure(int failureId)
     {
@@ -74,6 +79,7 @@ public class ParticipantMatricesController : ControllerBase
 public class SaveParticipantMatrixDto
 {
     public int FailureRecordId { get; set; }
+    public int FactorId { get; set; }
     public List<ParticipantMatrixEntryDto> Entries { get; set; } = new();
 }
 

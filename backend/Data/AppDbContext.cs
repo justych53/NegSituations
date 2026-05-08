@@ -9,27 +9,21 @@ public class AppDbContext : DbContext
 
     public DbSet<FailureRecord> FailureRecords => Set<FailureRecord>();
     public DbSet<Participant> Participants => Set<Participant>();
-    public DbSet<FailureParticipant> FailureParticipants => Set<FailureParticipant>();
     public DbSet<Factor> Factors => Set<Factor>();
     public DbSet<ComparisonMatrix> ComparisonMatrices => Set<ComparisonMatrix>();
     public DbSet<ParticipantMatrix> ParticipantMatrices => Set<ParticipantMatrix>();
+    public DbSet<FailureFactor> FailureFactors => Set<FailureFactor>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<FailureParticipant>()
-            .HasKey(fp => new { fp.FailureRecordId, fp.ParticipantId });
-
-        modelBuilder.Entity<FailureParticipant>()
-            .HasOne(fp => fp.FailureRecord)
-            .WithMany(fr => fr.FailureParticipants)
-            .HasForeignKey(fp => fp.FailureRecordId)
+        // Участник привязан к отказу (1:N)
+        modelBuilder.Entity<Participant>()
+            .HasOne(p => p.FailureRecord)
+            .WithMany(fr => fr.Participants)
+            .HasForeignKey(p => p.FailureRecordId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<FailureParticipant>()
-            .HasOne(fp => fp.Participant)
-            .WithMany(p => p.FailureParticipants)
-            .HasForeignKey(fp => fp.ParticipantId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // Матрица сравнения факторов
         modelBuilder.Entity<ComparisonMatrix>()
             .HasOne(cm => cm.FactorA)
             .WithMany()
@@ -41,6 +35,8 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(cm => cm.FactorBId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Матрица вины участников
         modelBuilder.Entity<ParticipantMatrix>()
             .HasOne(pm => pm.ParticipantA)
             .WithMany()
@@ -52,5 +48,36 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(pm => pm.ParticipantBId)
             .OnDelete(DeleteBehavior.Cascade);
-            }
+        modelBuilder.Entity<FailureFactor>()
+            .HasKey(ff => new { ff.FailureRecordId, ff.FactorId });
+
+        modelBuilder.Entity<FailureFactor>()
+            .HasOne(ff => ff.FailureRecord)
+            .WithMany(fr => fr.FailureFactors)
+            .HasForeignKey(ff => ff.FailureRecordId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FailureFactor>()
+            .HasOne(ff => ff.Factor)
+            .WithMany()
+            .HasForeignKey(ff => ff.FactorId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ParticipantMatrix>()
+            .HasOne(pm => pm.Factor)
+            .WithMany()
+            .HasForeignKey(pm => pm.FactorId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ParticipantMatrix>()
+            .HasOne(pm => pm.ParticipantA)
+            .WithMany()
+            .HasForeignKey(pm => pm.ParticipantAId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ParticipantMatrix>()
+            .HasOne(pm => pm.ParticipantB)
+            .WithMany()
+            .HasForeignKey(pm => pm.ParticipantBId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
 }

@@ -17,36 +17,24 @@ export class ApiService {
     return this.http.get<any>(`${this.baseUrl}/FailureRecords/${id}`);
   }
 
-  createFailureRecord(data: { descFailure: string; resInvest: string; participantIds: number[] }): Observable<any> {
-    return this.http.post(`${this.baseUrl}/FailureRecords`, data);
-  }
+  createFailureRecord(data: { 
+  descFailure: string; 
+  resInvest: string; 
+  participants: { name: string; position: string }[] 
+}): Observable<any> {
+  return this.http.post(`${this.baseUrl}/FailureRecords`, data);
+}
 
-  updateFailureRecord(id: number, data: { descFailure: string; resInvest: string; participantIds: number[] }): Observable<any> {
-    return this.http.put(`${this.baseUrl}/FailureRecords/${id}`, data);
-  }
+  updateFailureRecord(id: number, data: { 
+  descFailure: string; 
+  resInvest: string; 
+  participants: { name: string; position: string }[] 
+}): Observable<any> {
+  return this.http.put(`${this.baseUrl}/FailureRecords/${id}`, data);
+}
 
   deleteFailureRecord(id: number): Observable<any> {
     return this.http.delete(`${this.baseUrl}/FailureRecords/${id}`);
-  }
-
-  // Participants
-  getParticipants(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/Participants`);
-  }
-
-  getParticipantById(id: number): Observable<any> {
-    return this.http.get<any>(`${this.baseUrl}/Participants/${id}`);
-  }
-
-  createParticipant(data: { name: string; position: string }): Observable<any> {
-    return this.http.post(`${this.baseUrl}/Participants`, data);
-  }
-
-  deleteParticipant(id: number): Observable<any> {
-    return this.http.delete(`${this.baseUrl}/Participants/${id}`);
-  }
-  updateParticipant(id: number, data: any): Observable<any> {
-  return this.http.put(`${this.baseUrl}/Participants/${id}`, data);
   }
   getFactors(): Observable<any[]> {
   return this.http.get<any[]>(`${this.baseUrl}/Factors`);
@@ -74,5 +62,13 @@ getParticipantMatrix(failureId: number): Observable<any[]> {
 
 saveParticipantMatrix(data: any): Observable<any> {
   return this.http.post(`${this.baseUrl}/ParticipantMatrices`, data);
+}
+
+getParticipantMatrixByFactor(failureId: number, factorId: number): Observable<any[]> {
+  return this.http.get<any[]>(`${this.baseUrl}/ParticipantMatrices/by-failure/${failureId}/factor/${factorId}`);
+}
+
+saveParticipantMatrixByFactor(data: { failureRecordId: number; factorId: number; entries: any[] }): Observable<any> {
+  return this.http.post(`${this.baseUrl}/ParticipantMatrices/by-factor`, data);
 }
 }

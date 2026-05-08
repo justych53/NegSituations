@@ -1,8 +1,12 @@
-<nav>
-  <a routerLink="/failures">Отказы</a> |
-  <a routerLink="/participants">Участники</a> |
-  <a routerLink="/factors">Факторы</a> |
-  <a routerLink="/matrix">Матрица факторов</a> |
-  <a routerLink="/participant-matrix">Матрица участников</a>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+  <div class="container">
+    <a class="navbar-brand" routerLink="/failures">Анализ отказов</a>
+    <div class="navbar-nav">
+      <a class="nav-link" routerLink="/failures" routerLinkActive="active">Отказы</a>
+      <a class="nav-link" routerLink="/factors" routerLinkActive="active">Факторы</a>
+    </div>
+  </div>
 </nav>
-<router-outlet></router-outlet>
+<div class="container">
+  <router-outlet></router-outlet>
+</div>
