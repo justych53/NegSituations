@@ -1,8 +1,14 @@
-<h2>{{ isEdit ? 'Редактирование' : 'Новая запись' }} об отказе</h2>
+<h2>{{ isEdit ? 'Редактирование' : 'Новая запись' }} отказа</h2>
 
 <div class="mb-3">
   <label class="form-label">Описание отказа</label>
   <textarea [(ngModel)]="descFailure" name="desc" class="form-control" rows="3" required></textarea>
+  <button type="button" class="btn btn-outline-secondary mt-2" 
+          (click)="detectParticipants()" 
+          [disabled]="detecting">
+    <span *ngIf="detecting" class="spinner-border spinner-border-sm me-1"></span>
+    Определить участников
+  </button>
 </div>
 
 <div class="mb-3">

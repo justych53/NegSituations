@@ -21,6 +21,10 @@ builder.Services.AddCors(options =>
                         .AllowAnyMethod());
 });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpClient("ExternalService", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ExternalService:BaseUrl"]!);
+});
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();

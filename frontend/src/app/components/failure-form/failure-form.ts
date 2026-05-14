@@ -66,6 +66,27 @@ export class FailureFormComponent implements OnInit {
   isFactorSelected(id: number): boolean {
     return this.selectedFactorIds.includes(id);
   }
+  detecting = false;
+
+detectParticipants(): void {
+  if (!this.descFailure.trim()) {
+    alert('Сначала введите описание отказа');
+    return;
+  }
+
+  this.detecting = true;
+  this.api.detectParticipants(this.descFailure).subscribe({
+    next: (detected) => {
+      this.participants = detected;
+      this.detecting = false;
+    },
+    error: (err) => {
+      console.error(err);
+      alert('Не удалось определить участников: ' + (err.error?.message || err.message));
+      this.detecting = false;
+    }
+  });
+}
 
   save(): void {
     if (!this.descFailure.trim() || !this.resInvest.trim()) {

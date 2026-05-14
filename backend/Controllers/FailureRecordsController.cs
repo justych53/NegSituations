@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Models;
+using backend.Dtos;
 
 namespace backend.Controllers;
 
@@ -10,10 +11,12 @@ namespace backend.Controllers;
 public class FailureRecordsController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IConfiguration _configuration;
 
-    public FailureRecordsController(AppDbContext context)
+    public FailureRecordsController(AppDbContext context, IConfiguration configuration)
     {
         _context = context;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -64,6 +67,58 @@ public async Task<ActionResult<object>> GetById(int id)
             ff.Factor.Name
         })
     };
+}
+[HttpPost("detect-participants")]
+public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBody] DetectParticipantsDto dto)
+{
+    var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+    var client = httpClientFactory.CreateClient("ExternalService");
+    var endpoint = _configuration["ExternalService:Endpoint"];
+    var requestField = _configuration["ExternalService:RequestBodyField"] ?? "text";
+
+    var requestData = new Dictionary<string, string> { { requestField, dto.Description } };
+    var requestJson = System.Text.Json.JsonSerializer.Serialize(requestData);
+    Console.WriteLine($"→ External request: POST {endpoint} | Body: {requestJson}");
+
+    var response = await client.PostAsJsonAsync(endpoint, requestData);
+    var responseBody = await response.Content.ReadAsStringAsync();
+    Console.WriteLine($"← External response: {(int)response.StatusCode} | Body: {responseBody}");
+
+    if (!response.IsSuccessStatusCode)
+        return StatusCode((int)response.StatusCode, $"External service error: {responseBody}");
+
+    var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+    var externalParticipants = System.Text.Json.JsonSerializer.Deserialize<List<ExternalParticipantDto>>(responseBody, options);
+
+    if (externalParticipants == null)
+        return Ok(new List<ParticipantDto>());
+
+    // Парсим каждого участника, извлекаем имя и должность, затем дедублицируем по имени
+    var participants = externalParticipants
+        .Select(p =>
+        {
+            var full = p.Participant?.Trim() ?? "";
+            string name = full;
+            string position = "";
+
+            if (!string.IsNullOrEmpty(full))
+            {
+                // Разделяем по длинному тире или обычному тире
+                var parts = full.Split(new[] { '—', '-' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length == 2)
+                {
+                    name = parts[0].Trim();
+                    position = parts[1].Trim();
+                }
+            }
+
+            return new ParticipantDto { Name = name, Position = position };
+        })
+        .GroupBy(p => p.Name)          // группируем по имени
+        .Select(g => g.First())       // берём первое вхождение для каждого имени
+        .ToList();
+
+    return Ok(participants);
 }
 
     [HttpPost]
