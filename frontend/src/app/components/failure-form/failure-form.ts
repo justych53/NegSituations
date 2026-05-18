@@ -76,8 +76,15 @@ detectParticipants(): void {
 
   this.detecting = true;
   this.api.detectParticipants(this.descFailure).subscribe({
-    next: (detected) => {
-      this.participants = detected;
+    next: (participants) => {
+      // Убираем дубликаты
+      const unique = new Map<string, { name: string; position: string }>();
+      participants.forEach(p => {
+        if (!unique.has(p.name)) {
+          unique.set(p.name, { name: p.name, position: p.position || '' });
+        }
+      });
+      this.participants = Array.from(unique.values());
       this.detecting = false;
     },
     error: (err) => {

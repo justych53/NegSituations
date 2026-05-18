@@ -102,7 +102,12 @@
   <!-- ======================== УЧАСТНИКИ ПО ФАКТОРАМ ======================== -->
   <div *ngIf="activeTab === 'participants'">
     <div *ngIf="factors.length > 0 && participants.length > 1; else noData">
+            <button (click)="autoFillMatrix()" class="btn btn-outline-info me-2" [disabled]="autoFilling">
+  <span *ngIf="autoFilling" class="spinner-border spinner-border-sm me-1"></span>
+  Автозаполнение
+</button>
       <saaty-scale></saaty-scale>
+
 
       <!-- Выбор фактора -->
       <div class="mb-3">

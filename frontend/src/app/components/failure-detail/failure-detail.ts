@@ -32,7 +32,7 @@ export class FailureDetailComponent implements OnInit {
   ciFactors: number | null = null;
   crFactors: number | null = null;
   isConsistentFactors: boolean = true;
-
+  autoFilling = false;
   // ====== Участники (общий список) ======
   participants: any[] = [];
 
@@ -364,6 +364,25 @@ export class FailureDetailComponent implements OnInit {
       });
     }
   }
+autoFillMatrix(): void {
+  if (confirm('Заполнить матрицы на основе данных внешнего сервиса? Текущие оценки будут заменены.')) {
+    this.autoFilling = true;
+    this.api.autoFillMatrix(this.failureId).subscribe({
+      next: () => {
+        this.autoFilling = false;
+        // Перезагружаем все матрицы
+        this.loadFactorMatrix();
+        for (let fi = 0; fi < this.factors.length; fi++) {
+          this.loadParticipantMatrixForFactor(fi);
+        }
+      },
+      error: (err) => {
+        this.autoFilling = false;
+        alert('Ошибка: ' + err.message);
+      }
+    });
+  }
+}
   // Геттеры для безопасного доступа из шаблона
 get currentParticipantWeights(): number[] {
   return this.participantWeightsByFactor[this.selectedFactorIndex] || [];

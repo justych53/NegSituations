@@ -1,5 +1,4 @@
 import { Component, OnInit, signal } from '@angular/core';
-import { DatabaseService } from './services/database';
 import { RouterLink, RouterOutlet } from '@angular/router';
 
 @Component({

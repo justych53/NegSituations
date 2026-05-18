@@ -23,17 +23,17 @@
     <button type="button" class="btn btn-sm btn-outline-primary" (click)="addParticipant()">+ Добавить</button>
   </div>
   <div class="card-body">
-    <div *ngFor="let p of participants; let i = index" class="row mb-2">
-      <div class="col-5">
-        <input [(ngModel)]="p.name" name="name{{i}}" class="form-control" placeholder="Имя" required/>
-      </div>
-      <div class="col-5">
-        <input [(ngModel)]="p.position" name="pos{{i}}" class="form-control" placeholder="Должность" required/>
-      </div>
-      <div class="col-2">
-        <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeParticipant(i)">✕</button>
-      </div>
+      <div *ngFor="let p of participants; let i = index" class="row mb-2">
+    <div class="col-5">
+      <input [(ngModel)]="p.name" name="name{{i}}" class="form-control" placeholder="Имя" required/>
     </div>
+    <div class="col-5">
+      <input [(ngModel)]="p.position" name="pos{{i}}" class="form-control" placeholder="Должность" required/>
+    </div>
+    <div class="col-2">
+      <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeParticipant(i)">✕</button>
+    </div>
+  </div>
     <p *ngIf="participants.length === 0" class="text-muted mb-0">Нет участников</p>
   </div>
 </div>

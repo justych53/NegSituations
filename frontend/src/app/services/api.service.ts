@@ -77,4 +77,7 @@ detectParticipants(description: string): Observable<{ name: string; position: st
     { description }
   );
 }
+autoFillMatrix(failureId: number): Observable<any> {
+  return this.http.post(`${this.baseUrl}/FailureRecords/${failureId}/auto-fill-matrix`, {});
+}
 }
