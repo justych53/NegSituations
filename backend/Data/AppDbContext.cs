@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<ComparisonMatrix> ComparisonMatrices => Set<ComparisonMatrix>();
     public DbSet<ParticipantMatrix> ParticipantMatrices => Set<ParticipantMatrix>();
     public DbSet<FailureFactor> FailureFactors => Set<FailureFactor>();
+    public DbSet<QuestionnaireAnswer> QuestionnaireAnswers => Set<QuestionnaireAnswer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +79,11 @@ public class AppDbContext : DbContext
             .HasOne(pm => pm.ParticipantB)
             .WithMany()
             .HasForeignKey(pm => pm.ParticipantBId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<QuestionnaireAnswer>()
+            .HasOne(qa => qa.Participant)
+            .WithMany()
+            .HasForeignKey(qa => qa.ParticipantId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
