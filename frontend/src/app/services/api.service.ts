@@ -71,10 +71,10 @@ getParticipantMatrixByFactor(failureId: number, factorId: number): Observable<an
 saveParticipantMatrixByFactor(data: { failureRecordId: number; factorId: number; entries: any[] }): Observable<any> {
   return this.http.post(`${this.baseUrl}/ParticipantMatrices/by-factor`, data);
 }
-detectParticipants(description: string): Observable<{ name: string; position: string }[]> {
+detectParticipants(description: string, result: string): Observable<{ name: string; position: string }[]> {
   return this.http.post<{ name: string; position: string }[]>(
     `${this.baseUrl}/FailureRecords/detect-participants`,
-    { description }
+    { description, result }
   );
 }
 autoFillMatrix(failureId: number): Observable<any> {

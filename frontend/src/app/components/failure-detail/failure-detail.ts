@@ -14,7 +14,9 @@ import { SaatyScaleComponent } from '../saaty-scale/saaty-scale';
 export class FailureDetailComponent implements OnInit {
   failureId!: number;
   failure: any = null;
-  activeTab: 'info' | 'factors' | 'participants' = 'info';
+  activeTab: 'info' | 'factors' | 'participants' | 'questionnaire' = 'info';
+  // Анкетирование: ответы эксперта для каждого участника
+  questionnaireAnswers: string[] = [];
 
   // Таблица RI
   private RI_TABLE: { [n: number]: number } = {
@@ -51,6 +53,7 @@ export class FailureDetailComponent implements OnInit {
 
   // ====== Синтез ======
   synthesizedWeights: { name: string; weight: number; contributions: { factorName: string; contribution: number }[] }[] = [];
+  
 
   constructor(
     private route: ActivatedRoute,
@@ -68,6 +71,7 @@ export class FailureDetailComponent implements OnInit {
       this.failure = data;
       this.participants = data.participants || [];
       this.factors = data.factors || [];
+      this.questionnaireAnswers = this.participants.map(() => '');
       this.initFactorScores();
       this.loadFactorMatrix();
       this.initAllParticipantScores();
@@ -86,24 +90,32 @@ export class FailureDetailComponent implements OnInit {
     }
   }
 
-  loadFactorMatrix(): void {
-    if (this.factors.length < 2) return;
-    this.api.getComparisonMatrix(this.failureId).subscribe(matrix => {
-      for (const entry of matrix) {
-        this.factorScores[`${entry.factorAId}_${entry.factorBId}`] = entry.score;
+loadFactorMatrix(): void {
+  if (this.factors.length < 2) return;
+  this.api.getComparisonMatrix(this.failureId).subscribe(matrix => {
+    // Инициализируем дефолтные единицы
+    this.initFactorScores();
+    for (const entry of matrix) {
+      const key = `${entry.factorAId}_${entry.factorBId}`;
+      // Явно приводим к числу и округляем до 4 знаков, чтобы совпадало с опциями
+      const score = Number(entry.score);
+      if (!isNaN(score)) {
+        this.factorScores[key] = Number(score.toFixed(4));
       }
-      this.calculateFactors();
-    });
-  }
+    }
+    this.calculateFactors(); // пересчёт весов и обновление интерфейса
+  });
+}
 
-  getFactorScore(aId: number, bId: number): number {
-    return this.factorScores[`${aId}_${bId}`] || 1;
-  }
+getFactorScore(aId: number, bId: number): number {
+  const val = this.factorScores[`${aId}_${bId}`];
+  return val !== undefined ? Number(val) : 1;
+}
 
-  setFactorScore(aId: number, bId: number, value: number): void {
-    this.factorScores[`${aId}_${bId}`] = value;
-    this.calculateFactors();
-  }
+setFactorScore(aId: number, bId: number, value: number): void {
+  this.factorScores[`${aId}_${bId}`] = Number(value);
+  this.calculateFactors();
+}
 
   getFactorInverse(aId: number, bId: number): number {
     return 1 / this.getFactorScore(aId, bId);
@@ -119,6 +131,11 @@ export class FailureDetailComponent implements OnInit {
       setTimeout(() => this.factorSaved = false, 3000);
     });
   }
+  saveQuestionnaire(): void {
+  // Здесь будет сохранение ответов (пока просто выводим в консоль)
+  console.log('Анкета сохранена:', this.questionnaireAnswers);
+  alert('Анкета сохранена (заглушка)');
+}
 
   calculateFactors(): void {
     if (this.factors.length < 2) return;
@@ -179,15 +196,26 @@ export class FailureDetailComponent implements OnInit {
     }
   }
 
-  loadParticipantMatrixForFactor(fi: number): void {
-    if (this.participants.length < 2) return;
-    this.api.getParticipantMatrixByFactor(this.failureId, this.factors[fi].id).subscribe(matrix => {
-      for (const entry of matrix) {
-        this.participantScoresByFactor[fi][`${entry.participantAId}_${entry.participantBId}`] = entry.score;
+loadParticipantMatrixForFactor(fi: number): void {
+  if (this.participants.length < 2) return;
+  this.api.getParticipantMatrixByFactor(this.failureId, this.factors[fi].id).subscribe(matrix => {
+    // Инициализируем дефолтные единицы для этого фактора
+    this.participantScoresByFactor[fi] = {};
+    for (let i = 0; i < this.participants.length; i++) {
+      for (let j = i + 1; j < this.participants.length; j++) {
+        this.participantScoresByFactor[fi][`${this.participants[i].id}_${this.participants[j].id}`] = 1;
       }
-      this.calculateParticipantsForFactor(fi);
-    });
-  }
+    }
+    for (const entry of matrix) {
+      const key = `${entry.participantAId}_${entry.participantBId}`;
+      const score = Number(entry.score);
+      if (!isNaN(score)) {
+        this.participantScoresByFactor[fi][key] = Number(score.toFixed(4));
+      }
+    }
+    this.calculateParticipantsForFactor(fi);
+  });
+}
 
   selectFactor(index: number): void {
     this.selectedFactorIndex = index;

@@ -60,6 +60,7 @@ public class ExternalMatrix
 {
     [JsonPropertyName("labels")] public List<string> Labels { get; set; } = new();
     [JsonPropertyName("matrix")] public List<List<double>> Matrix { get; set; } = new();
+    [JsonPropertyName("saaty_scale")] public List<double>? SaatyScale { get; set; }  // не обязательно
     [JsonPropertyName("weights")] public Dictionary<string, double> Weights { get; set; } = new();
     [JsonPropertyName("source_scores")] public Dictionary<string, double> SourceScores { get; set; } = new();
     [JsonPropertyName("lambda_max")] public double LambdaMax { get; set; }

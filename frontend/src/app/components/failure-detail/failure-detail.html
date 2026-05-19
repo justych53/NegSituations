@@ -24,6 +24,11 @@
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'participants'" (click)="activeTab = 'participants'">Оценка участников</button>
     </li>
+    <li class="nav-item">
+  <button class="nav-link" [class.active]="activeTab === 'questionnaire'" (click)="activeTab = 'questionnaire'">
+    Анкетирование
+  </button>
+</li>
   </ul>
 
   <!-- ======================== ИНФОРМАЦИЯ ======================== -->
@@ -207,4 +212,21 @@
       <div class="alert alert-warning" *ngIf="participants.length <= 1">Недостаточно участников для сравнения.</div>
     </ng-template>
   </div>
+  <!-- ======================== АНКЕТИРОВАНИЕ ======================== -->
+<div *ngIf="activeTab === 'questionnaire'">
+  <h4>Анкетирование участников</h4>
+  <p *ngIf="participants.length === 0" class="text-muted">Нет участников для анкетирования.</p>
+  <div *ngFor="let p of participants; let i = index" class="card mb-3">
+    <div class="card-header">
+      <strong>{{ p.name }}</strong> <span class="text-muted">({{ p.position }})</span>
+    </div>
+    <div class="card-body">
+      <textarea class="form-control" rows="3" placeholder="Введите комментарий или оценку..."
+                [(ngModel)]="questionnaireAnswers[i]"></textarea>
+    </div>
+  </div>
+  <button class="btn btn-primary" (click)="saveQuestionnaire()" [disabled]="participants.length === 0">
+    Сохранить анкету
+  </button>
+</div>
 </div>

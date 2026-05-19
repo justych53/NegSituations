@@ -69,15 +69,14 @@ export class FailureFormComponent implements OnInit {
   detecting = false;
 
 detectParticipants(): void {
-  if (!this.descFailure.trim()) {
-    alert('Сначала введите описание отказа');
+  if (!this.descFailure.trim() && !this.resInvest.trim()) {
+    alert('Введите описание отказа или результат расследования');
     return;
   }
 
   this.detecting = true;
-  this.api.detectParticipants(this.descFailure).subscribe({
+  this.api.detectParticipants(this.descFailure, this.resInvest).subscribe({
     next: (participants) => {
-      // Убираем дубликаты
       const unique = new Map<string, { name: string; position: string }>();
       participants.forEach(p => {
         if (!unique.has(p.name)) {
