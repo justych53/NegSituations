@@ -15,8 +15,6 @@ export class FailureDetailComponent implements OnInit {
   failureId!: number;
   failure: any = null;
   activeTab: 'info' | 'factors' | 'participants' | 'questionnaire' = 'info';
-  // Анкетирование: ответы эксперта для каждого участника
-  questionnaireAnswers: string[] = [];
 
   // Таблица RI
   private RI_TABLE: { [n: number]: number } = {
@@ -51,6 +49,8 @@ export class FailureDetailComponent implements OnInit {
   crByFactor: { [factorIndex: number]: number } = {};
   isConsistentByFactor: { [factorIndex: number]: boolean } = {};
 
+  questionnaireAnswers: { [participantId: number]: string } = {};
+
   // ====== Синтез ======
   synthesizedWeights: { name: string; weight: number; contributions: { factorName: string; contribution: number }[] }[] = [];
   
@@ -71,7 +71,7 @@ export class FailureDetailComponent implements OnInit {
       this.failure = data;
       this.participants = data.participants || [];
       this.factors = data.factors || [];
-      this.questionnaireAnswers = this.participants.map(() => '');
+      this.loadQuestionnaireAnswers();
       this.initFactorScores();
       this.loadFactorMatrix();
       this.initAllParticipantScores();
@@ -131,12 +131,6 @@ setFactorScore(aId: number, bId: number, value: number): void {
       setTimeout(() => this.factorSaved = false, 3000);
     });
   }
-  saveQuestionnaire(): void {
-  // Здесь будет сохранение ответов (пока просто выводим в консоль)
-  console.log('Анкета сохранена:', this.questionnaireAnswers);
-  alert('Анкета сохранена (заглушка)');
-}
-
   calculateFactors(): void {
     if (this.factors.length < 2) return;
     const n = this.factors.length;
@@ -410,6 +404,37 @@ autoFillMatrix(): void {
       }
     });
   }
+}
+loadQuestionnaireAnswers(): void {
+  this.api.getQuestionnaireAnswers(this.failureId).subscribe(answers => {
+    this.questionnaireAnswers = {};
+    answers.forEach(a => {
+      this.questionnaireAnswers[a.participantId] = a.answer;
+    });
+  });
+}
+
+saveQuestionnaire(): void {
+  const answers = this.participants.map(p => ({
+    participantId: p.id,
+    answer: this.questionnaireAnswers[p.id] || ''
+  }));
+
+  this.api.saveQuestionnaireAnswers({
+    failureRecordId: this.failureId,
+    answers
+  }).subscribe({
+    next: () => alert('Анкета сохранена'),
+    error: (err) => alert('Ошибка: ' + err.message)
+  });
+}
+
+getAnswer(participantId: number): string {
+  return this.questionnaireAnswers[participantId] || '';
+}
+
+setAnswer(participantId: number, value: string): void {
+  this.questionnaireAnswers[participantId] = value;
 }
   // Геттеры для безопасного доступа из шаблона
 get currentParticipantWeights(): number[] {

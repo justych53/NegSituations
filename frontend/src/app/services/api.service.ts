@@ -80,4 +80,13 @@ detectParticipants(description: string, result: string): Observable<{ name: stri
 autoFillMatrix(failureId: number): Observable<any> {
   return this.http.post(`${this.baseUrl}/FailureRecords/${failureId}/auto-fill-matrix`, {});
 }
+getQuestionnaireAnswers(failureId: number): Observable<{ id: number; participantId: number; answer: string }[]> {
+  return this.http.get<{ id: number; participantId: number; answer: string }[]>(
+    `${this.baseUrl}/Questionnaire/by-failure/${failureId}`
+  );
+}
+
+saveQuestionnaireAnswers(data: { failureRecordId: number; answers: { participantId: number; answer: string }[] }): Observable<any> {
+  return this.http.post(`${this.baseUrl}/Questionnaire/save`, data);
+}
 }
