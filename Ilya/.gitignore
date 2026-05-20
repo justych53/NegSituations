@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Local logs and temporary files
+*.log
+tmp_*.txt
+
+# IDE / OS files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Hugging Face / PyTorch generated model artifacts
+# These folders are produced by training scripts and are too large for Git.
+factor_classifier/rubert_factor_classifier/
+factor_classifier/scratch_factor_classifier/
+
+# Training checkpoints, if they are created outside ignored model folders
+checkpoint-*/
+*.safetensors
+*.pt
+*.pth
+
+# Local caches
+.cache/
+cache/

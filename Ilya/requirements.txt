@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+gliner
+torch
+transformers
+datasets
+pandas
+scikit-learn
+accelerate
+numpy
