@@ -74,6 +74,10 @@
         </table>
       </div>
       <button (click)="saveFactors()" class="btn btn-success me-2">Сохранить</button>
+                  <button (click)="autoFillMatrix()" class="btn btn-outline-info me-2" [disabled]="autoFilling">
+  <span *ngIf="autoFilling" class="spinner-border spinner-border-sm me-1"></span>
+  Автозаполнение
+</button>
       <span *ngIf="factorSaved" class="text-success">✓ Сохранено</span>
 
       <!-- Результаты факторов -->
@@ -107,10 +111,6 @@
   <!-- ======================== УЧАСТНИКИ ПО ФАКТОРАМ ======================== -->
   <div *ngIf="activeTab === 'participants'">
     <div *ngIf="factors.length > 0 && participants.length > 1; else noData">
-            <button (click)="autoFillMatrix()" class="btn btn-outline-info me-2" [disabled]="autoFilling">
-  <span *ngIf="autoFilling" class="spinner-border spinner-border-sm me-1"></span>
-  Автозаполнение
-</button>
       <saaty-scale></saaty-scale>
 
 
@@ -157,6 +157,10 @@
       </div>
 
       <button (click)="saveParticipantsForFactor(selectedFactorIndex)" class="btn btn-success me-2">Сохранить матрицу</button>
+                  <button (click)="autoFillMatrix()" class="btn btn-outline-info me-2" [disabled]="autoFilling">
+  <span *ngIf="autoFilling" class="spinner-border spinner-border-sm me-1"></span>
+  Автозаполнение
+</button>
       <span *ngIf="participantSavedByFactor[selectedFactorIndex]" class="text-success">✓ Сохранено</span>
 
       <!-- Локальные веса для фактора -->
