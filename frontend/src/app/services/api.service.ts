@@ -89,4 +89,8 @@ getQuestionnaireAnswers(failureId: number): Observable<{ id: number; participant
 saveQuestionnaireAnswers(data: { failureRecordId: number; answers: { participantId: number; answer: string }[] }): Observable<any> {
   return this.http.post(`${this.baseUrl}/Questionnaire/save`, data);
 }
+
+getAnalysisRaw(description: string): Observable<any> {
+  return this.http.post(`${this.baseUrl}/FailureRecords/analyze-raw`, { description });
+}
 }

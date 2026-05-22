@@ -35,6 +35,7 @@
   <div *ngIf="activeTab === 'info'">
     <a [routerLink]="['/failures', failure.id, 'edit']" class="btn btn-warning me-2">Редактировать</a>
     <button (click)="deleteFailure()" class="btn btn-danger">Удалить</button>
+    <button class="btn btn-outline-secondary ms-2" (click)="debugMatrices()"> Показать матрицы в консоли</button>
   </div>
 
   <!-- ======================== ФАКТОРЫ ======================== -->

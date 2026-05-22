@@ -33,6 +33,7 @@ export class FailureDetailComponent implements OnInit {
   crFactors: number | null = null;
   isConsistentFactors: boolean = true;
   autoFilling = false;
+  rawAhp: any = null; 
   // ====== Участники (общий список) ======
   participants: any[] = [];
 
@@ -93,17 +94,21 @@ export class FailureDetailComponent implements OnInit {
 loadFactorMatrix(): void {
   if (this.factors.length < 2) return;
   this.api.getComparisonMatrix(this.failureId).subscribe(matrix => {
-    // Инициализируем дефолтные единицы
+    console.group('🔷 Factor matrix loaded from backend');
+    console.log('Raw data:', matrix);
     this.initFactorScores();
     for (const entry of matrix) {
       const key = `${entry.factorAId}_${entry.factorBId}`;
-      // Явно приводим к числу и округляем до 4 знаков, чтобы совпадало с опциями
       const score = Number(entry.score);
       if (!isNaN(score)) {
-        this.factorScores[key] = Number(score.toFixed(4));
+        const rounded = Number(score.toFixed(4));
+        this.factorScores[key] = rounded;
+        console.log(`Set ${key} = ${rounded}`);
       }
     }
-    this.calculateFactors(); // пересчёт весов и обновление интерфейса
+    console.log('Final factorScores:', { ...this.factorScores });
+    console.groupEnd();
+    this.calculateFactors();
   });
 }
 
@@ -192,8 +197,11 @@ setFactorScore(aId: number, bId: number, value: number): void {
 
 loadParticipantMatrixForFactor(fi: number): void {
   if (this.participants.length < 2) return;
-  this.api.getParticipantMatrixByFactor(this.failureId, this.factors[fi].id).subscribe(matrix => {
-    // Инициализируем дефолтные единицы для этого фактора
+  const factorId = this.factors[fi].id;
+  this.api.getParticipantMatrixByFactor(this.failureId, factorId).subscribe(matrix => {
+    console.group(`🔶 Participant matrix loaded for factor "${this.factors[fi].name}" (id=${factorId})`);
+    console.log('Raw data:', matrix);
+    // Инициализируем дефолтные единицы
     this.participantScoresByFactor[fi] = {};
     for (let i = 0; i < this.participants.length; i++) {
       for (let j = i + 1; j < this.participants.length; j++) {
@@ -204,9 +212,13 @@ loadParticipantMatrixForFactor(fi: number): void {
       const key = `${entry.participantAId}_${entry.participantBId}`;
       const score = Number(entry.score);
       if (!isNaN(score)) {
-        this.participantScoresByFactor[fi][key] = Number(score.toFixed(4));
+        const rounded = Number(score.toFixed(4));
+        this.participantScoresByFactor[fi][key] = rounded;
+        console.log(`Set ${key} = ${rounded}`);
       }
     }
+    console.log('Final scores for factor:', { ...this.participantScoresByFactor[fi] });
+    console.groupEnd();
     this.calculateParticipantsForFactor(fi);
   });
 }
@@ -282,6 +294,7 @@ loadParticipantMatrixForFactor(fi: number): void {
   getParticipantPercentByFactor(fi: number, pi: number): string {
     return ((this.participantWeightsByFactor[fi]?.[pi] || 0) * 100).toFixed(2);
   }
+
 
   getSortedParticipantsByFactor(fi: number): any[] {
     if (!this.participantWeightsByFactor[fi]) return [];
@@ -392,7 +405,7 @@ autoFillMatrix(): void {
     this.api.autoFillMatrix(this.failureId).subscribe({
       next: () => {
         this.autoFilling = false;
-        // Перезагружаем все матрицы
+        console.log(' Auto-fill completed, reloading matrices...');
         this.loadFactorMatrix();
         for (let fi = 0; fi < this.factors.length; fi++) {
           this.loadParticipantMatrixForFactor(fi);
@@ -405,6 +418,17 @@ autoFillMatrix(): void {
     });
   }
 }
+
+debugMatrices(): void {
+  console.group(' Debug: current matrix states');
+  console.log('Factor scores:', this.factorScores);
+  console.log('Factor weights:', this.factorWeights);
+  console.log('Participant scores by factor:', this.participantScoresByFactor);
+  console.log('Participant weights by factor:', this.participantWeightsByFactor);
+  console.groupEnd();
+  alert('Данные матриц выведены в консоль (F12)');
+}
+
 loadQuestionnaireAnswers(): void {
   this.api.getQuestionnaireAnswers(this.failureId).subscribe(answers => {
     this.questionnaireAnswers = {};
