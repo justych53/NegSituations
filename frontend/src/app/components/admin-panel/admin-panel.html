@@ -1,0 +1,49 @@
+<div class="container mt-4" *ngIf="auth.isAdmin(); else notAdmin">
+  <h2>Панель администратора</h2>
+
+  <div class="card mb-4">
+    <div class="card-header"><strong>Создать эксперта</strong></div>
+    <div class="card-body">
+      <div class="row g-2">
+        <div class="col-5">
+          <input [(ngModel)]="newUsername" class="form-control" placeholder="Логин" />
+        </div>
+        <div class="col-5">
+          <input [(ngModel)]="newPassword" type="password" class="form-control" placeholder="Пароль" />
+        </div>
+        <div class="col-2">
+          <button class="btn btn-primary" (click)="createUser()">Добавить</button>
+        </div>
+      </div>
+      <div class="text-danger mt-2" *ngIf="error">{{ error }}</div>
+    </div>
+  </div>
+
+  <h4>Список пользователей</h4>
+  <table class="table table-bordered table-hover">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th>
+        <th>Логин</th>
+        <th>Роль</th>
+        <th>Создан</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let u of users">
+        <td>{{ u.id }}</td>
+        <td>{{ u.username }}</td>
+        <td><span class="badge bg-success" *ngIf="u.role==='Admin'">Админ</span><span class="badge bg-secondary" *ngIf="u.role==='Expert'">Эксперт</span></td>
+        <td>{{ u.createdAt | date:'short' }}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-danger" (click)="deleteUser(u.id)" *ngIf="u.role !== 'Admin'">Удалить</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<ng-template #notAdmin>
+  <div class="alert alert-danger">Доступ запрещён. Только для администраторов.</div>
+</ng-template>

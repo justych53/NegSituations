@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-failure-list',
@@ -12,7 +13,15 @@ import { ApiService } from '../../services/api.service';
 export class FailureListComponent implements OnInit {
   records: any[] = [];
 
-  constructor(private api: ApiService) {}
+  constructor(private api: ApiService, private auth: AuthService) {}
+
+    get currentUser() {
+    return this.auth.getUser();
+  }
+
+  get isAdmin() {
+    return this.auth.isAdmin();
+  }
 
   ngOnInit(): void {
     this.loadRecords();

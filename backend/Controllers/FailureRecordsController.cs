@@ -5,9 +5,12 @@ using backend.Models;
 using backend.Dtos;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace backend.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class FailureRecordsController : ControllerBase
@@ -27,26 +30,38 @@ public class FailureRecordsController : ControllerBase
         _context = context;
         _configuration = configuration;
     }
+    private int GetCurrentUserId()
+{
+    var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+    if (claim == null)
+        throw new UnauthorizedAccessException("Недействительный токен: отсутствует идентификатор пользователя");
+    return int.Parse(claim.Value);
+}
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<object>>> GetAll()
-    {
-        return await _context.FailureRecords
-            .Include(fr => fr.Participants)
-            .Select(fr => new
+        [HttpGet]
+public async Task<ActionResult<IEnumerable<object>>> GetAll()
+{
+    return await _context.FailureRecords
+        .Include(fr => fr.Participants)
+        .Include(fr => fr.CreatedBy)
+        .Select(fr => new
+        {
+            fr.Id,
+            fr.DescFailure,
+            fr.ResInvest,
+            Participants = fr.Participants.Select(p => new
             {
-                fr.Id,
-                fr.DescFailure,
-                fr.ResInvest,
-                Participants = fr.Participants.Select(p => new
-                {
-                    p.Id,
-                    p.Name,
-                    p.Position
-                })
-            })
-            .ToListAsync();
-    }
+                p.Id,
+                p.Name,
+                p.Position
+            }),
+            fr.CreatedAt,
+            fr.UpdatedAt,
+            CreatedBy = fr.CreatedBy != null ? fr.CreatedBy.Username : null,
+            CreatedByUserId = fr.CreatedByUserId   // нужно для проверки на фронте
+        })
+        .ToListAsync();
+}
 
     [HttpGet("{id}")]
     public async Task<ActionResult<object>> GetById(int id)
@@ -74,7 +89,11 @@ public class FailureRecordsController : ControllerBase
             {
                 ff.Factor.Id,
                 ff.Factor.Name
-            })
+            }),
+                record.CreatedAt,
+            record.UpdatedAt,
+            CreatedBy = record.CreatedBy != null ? record.CreatedBy.Username : null,
+            CreatedByUserId = record.CreatedByUserId 
         };
     }
 /// <summary>
@@ -102,6 +121,7 @@ public async Task<ActionResult<IEnumerable<object>>> GetParticipants(int id)
 }
 
     [HttpPost("detect-participants")]
+    [Authorize]
 public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBody] DetectParticipantsDto dto)
 {
     var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
@@ -129,7 +149,6 @@ public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBo
     if (detectionResult == null || detectionResult.Participants.Count == 0)
         return Ok(new List<ParticipantDto>());
 
-    // Извлекаем уникальные имена (label предпочтительнее text)
     var participants = detectionResult.Participants
         .Select(p => p.Label ?? p.Text)
         .Where(name => !string.IsNullOrWhiteSpace(name))
@@ -143,12 +162,15 @@ public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBo
     [HttpPost]
     public async Task<ActionResult<object>> Create([FromBody] CreateFailureRecordDto dto)
     {
+        var userId = GetCurrentUserId();
         var record = new FailureRecord
         {
             DescFailure = dto.DescFailure,
-            ResInvest = dto.ResInvest
+            ResInvest = dto.ResInvest,
+            CreatedByUserId = userId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
-
         if (dto.Participants != null)
         {
             foreach (var p in dto.Participants)
@@ -171,30 +193,38 @@ public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBo
 
         _context.FailureRecords.Add(record);
         await _context.SaveChangesAsync();
-
         return CreatedAtAction(nameof(GetById), new { id = record.Id }, new
-        {
-            record.Id,
-            record.DescFailure,
-            record.ResInvest,
-            Participants = record.Participants.Select(p => new
             {
-                p.Id,
-                p.Name,
-                p.Position
-            })
-        });
+                record.Id,
+                record.DescFailure,
+                record.ResInvest,
+                Participants = record.Participants.Select(p => new
+                {
+                    p.Id,
+                    p.Name,
+                    p.Position
+                }),
+                record.CreatedAt,
+                record.UpdatedAt,
+                CreatedBy = record.CreatedBy?.Username
+            });
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] CreateFailureRecordDto dto)
     {
+        var userId = GetCurrentUserId();
         var record = await _context.FailureRecords
             .Include(fr => fr.Participants)
             .Include(fr => fr.FailureFactors)
             .FirstOrDefaultAsync(fr => fr.Id == id);
 
         if (record == null) return NotFound();
+
+        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+            return Forbid("Вы не можете редактировать чужой отказ");
+
+        record.UpdatedAt = DateTime.UtcNow;
 
         record.DescFailure = dto.DescFailure;
         record.ResInvest = dto.ResInvest;
@@ -233,8 +263,12 @@ public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBo
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
+        var userId = GetCurrentUserId();
         var record = await _context.FailureRecords.FindAsync(id);
         if (record == null) return NotFound();
+
+        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+            return Forbid();
 
         _context.FailureRecords.Remove(record);
         await _context.SaveChangesAsync();
@@ -242,22 +276,25 @@ public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBo
     }
 
 [HttpPost("{id}/auto-fill-matrix")]
+[Authorize]
 public async Task<IActionResult> AutoFillMatrix(int id)
 {
     try
     {
+        var userId = GetCurrentUserId();
         var record = await _context.FailureRecords
             .Include(fr => fr.FailureFactors)
             .Include(fr => fr.Participants)
             .FirstOrDefaultAsync(fr => fr.Id == id);
 
         if (record == null) return NotFound();
+        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+            return Forbid();
 
         var httpClientFactory = HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
         var client = httpClientFactory.CreateClient("ExternalService");
         var endpoint = _configuration["ExternalService:AnalysisEndpoint"];
 
-        // Отправляем описание как plain text
         var content = new StringContent(record.DescFailure, System.Text.Encoding.UTF8, "text/plain");
         var response = await client.PostAsync(endpoint, content);
         var responseBody = await response.Content.ReadAsStringAsync();
@@ -299,6 +336,7 @@ public async Task<IActionResult> AutoFillMatrix(int id)
                             FactorBId = factorB.Id,
                             Score = factorMatrix[i][j]
                         });
+                        Console.WriteLine($"{factorLabels[i]} -> {factorLabels[j]}: {factorMatrix[i][j]}");
                     }
                 }
             }
@@ -341,15 +379,13 @@ public async Task<IActionResult> AutoFillMatrix(int id)
                                 ParticipantBId = pB.Id,
                                 Score = matrix[i][j]
                             });
+                            Console.WriteLine($"Participant: {pA.Name} -> {pB.Name}: {matrix[i][j]}");
                         }
                     }
                 }
             }
         }
-        Console.WriteLine($"Saving factor matrix for failure {id}:");
-for (int i = 0; i < factorLabels.Count; i++)
-    for (int j = i + 1; j < factorLabels.Count; j++)
-        Console.WriteLine($"{factorLabels[i]} -> {factorLabels[j]}: {factorMatrix[i][j]}");
+
         await _context.SaveChangesAsync();
         return Ok();
     }

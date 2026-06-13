@@ -4,6 +4,10 @@
     <div class="navbar-nav">
       <a class="nav-link" routerLink="/failures" routerLinkActive="active">Отказы</a>
       <a class="nav-link" routerLink="/factors" routerLinkActive="active">Факторы</a>
+      <ng-container *ngIf="auth.isAdmin()">
+        <a class="nav-link" routerLink="/admin" routerLinkActive="active">Админ-панель</a>
+      </ng-container>
+      <button class="btn btn-outline-light ms-3" (click)="logout()">Выйти</button>
     </div>
   </div>
 </nav>

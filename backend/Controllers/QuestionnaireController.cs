@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
@@ -15,6 +17,13 @@ public class QuestionnaireController : ControllerBase
     {
         _context = context;
     }
+        private int GetCurrentUserId()
+{
+    var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+    if (claim == null)
+        throw new UnauthorizedAccessException("Недействительный токен: отсутствует идентификатор пользователя");
+    return int.Parse(claim.Value);
+}
 
     // Получить ответы для конкретного отказа
     [HttpGet("by-failure/{failureId}")]
@@ -35,8 +44,14 @@ public class QuestionnaireController : ControllerBase
 
     // Сохранить массив ответов для отказа
     [HttpPost("save")]
+    [Authorize]
     public async Task<IActionResult> SaveAnswers([FromBody] SaveAnswersDto dto)
     {
+        var userId = GetCurrentUserId();
+        var record = await _context.FailureRecords.FindAsync(dto.FailureRecordId);
+        if (record == null) return NotFound();
+        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+        return Forbid();
         // Получаем участников, привязанных к этому отказу
         var participantIds = await _context.Participants
             .Where(p => p.FailureRecordId == dto.FailureRecordId)

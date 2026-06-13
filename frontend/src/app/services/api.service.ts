@@ -4,7 +4,8 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private baseUrl = 'http://89.108.78.139:5279/api';
+ // private baseUrl = 'http://89.108.78.139:5279/api';
+  private baseUrl =  'http://localhost:5279/api';
 
   constructor(private http: HttpClient) {}
 
@@ -92,5 +93,16 @@ saveQuestionnaireAnswers(data: { failureRecordId: number; answers: { participant
 
 getAnalysisRaw(description: string): Observable<any> {
   return this.http.post(`${this.baseUrl}/FailureRecords/analyze-raw`, { description });
+}
+getUsers(): Observable<any[]> {
+  return this.http.get<any[]>(`${this.baseUrl}/Users`);
+}
+
+createUser(username: string, password: string): Observable<any> {
+  return this.http.post(`${this.baseUrl}/Users`, { username, password });
+}
+
+deleteUser(id: number): Observable<any> {
+  return this.http.delete(`${this.baseUrl}/Users/${id}`);
 }
 }

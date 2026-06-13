@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { SaatyScaleComponent } from '../saaty-scale/saaty-scale';
+import { AuthService } from '../../services/auth';
 
 @Component({
   selector: 'app-failure-detail',
@@ -59,8 +60,21 @@ export class FailureDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private api: ApiService
+    private api: ApiService,
+    private auth: AuthService
   ) {}
+
+get canEdit(): boolean {
+  if (!this.failure) return false;
+  if (this.auth.isAdmin()) return true;
+  const userId = this.auth.getUser()?.id;
+  // Приводим к числу, т.к. createdByUserId — number, а id из токена может быть строкой
+  return userId != null && this.failure.createdByUserId === +userId;
+}
+
+  get canDelete(): boolean {
+    return this.canEdit;
+  }
 
   ngOnInit(): void {
     this.failureId = +this.route.snapshot.paramMap.get('id')!;

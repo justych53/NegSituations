@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace backend.Controllers;
 
@@ -15,6 +17,13 @@ public class ParticipantMatricesController : ControllerBase
     {
         _context = context;
     }
+        private int GetCurrentUserId()
+{
+    var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+    if (claim == null)
+        throw new UnauthorizedAccessException("Недействительный токен: отсутствует идентификатор пользователя");
+    return int.Parse(claim.Value);
+}
 
     // Получить матрицу для отказа по фактору
     [HttpGet("by-failure/{failureId}/factor/{factorId}")]
@@ -38,8 +47,14 @@ public class ParticipantMatricesController : ControllerBase
 
     // Сохранить матрицу для отказа по фактору
     [HttpPost("by-factor")]
+    [Authorize]
     public async Task<ActionResult> SaveByFactor([FromBody] SaveParticipantMatrixDto dto)
     {
+        var userId = GetCurrentUserId();
+        var record = await _context.FailureRecords.FindAsync(dto.FailureRecordId);
+        if (record == null) return NotFound();
+        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+        return Forbid();
         // Удаляем старые записи для этого отказа и фактора
         var oldEntries = await _context.ParticipantMatrices
             .Where(pm => pm.FailureRecordId == dto.FailureRecordId && pm.FactorId == dto.FactorId)
@@ -65,8 +80,15 @@ public class ParticipantMatricesController : ControllerBase
 
     // Удалить все матрицы для отказа
     [HttpDelete("by-failure/{failureId}")]
+    [Authorize]
     public async Task<IActionResult> DeleteByFailure(int failureId)
     {
+        var userId = GetCurrentUserId();
+        var record = await _context.FailureRecords.FindAsync(failureId);
+        if (record == null) return NotFound();
+        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+            return Forbid();
+
         var entries = await _context.ParticipantMatrices
             .Where(pm => pm.FailureRecordId == failureId)
             .ToListAsync();

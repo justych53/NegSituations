@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using backend.Data;
 using backend.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace backend.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class FactorsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -41,6 +43,7 @@ public class FactorsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var factor = await _context.Factors.FindAsync(id);
