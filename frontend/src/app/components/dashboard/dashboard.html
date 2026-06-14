@@ -1,0 +1,80 @@
+<div class="container mt-4">
+  <h2>Дашборд</h2>
+
+  <!-- Карточки общей статистики -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card text-white bg-primary">
+        <div class="card-body">
+          <h5 class="card-title">Всего отказов</h5>
+          <p class="card-text display-4">{{ totalFailures }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card text-white bg-info">
+        <div class="card-body">
+          <h5 class="card-title">Среднее участников</h5>
+          <p class="card-text display-4">{{ avgParticipants | number:'1.1-1' }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Графики -->
+  <div class="row" *ngIf="dataLoaded">   <!-- отображаем только после загрузки -->
+    <!-- Столбчатая диаграмма -->
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header"><strong>Топ-5 участников по средней вине</strong></div>
+        <div class="card-body">
+          <div style="position: relative; height: 300px;">
+            <canvas baseChart
+                    [data]="barChartData"
+                    [options]="barChartOptions"
+                    [type]="'bar'">
+            </canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Круговая диаграмма -->
+    <div class="col-md-6">
+      <div class="card mb-4">
+        <div class="card-header"><strong>Средние веса факторов</strong></div>
+        <div class="card-body">
+          <div style="position: relative; height: 300px;">
+            <canvas baseChart
+                    [data]="pieChartData"
+                    [options]="pieChartOptions"
+                    [type]="'pie'">
+            </canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Таблица Топ-5 -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><strong>Топ-5 участников (таблица)</strong></div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr><th>Участник</th><th>Средняя вина (%)</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of topParticipants">
+                <td>{{ p.name }}</td>
+                <td>{{ (p.avgWeight * 100) | number:'1.1-1' }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

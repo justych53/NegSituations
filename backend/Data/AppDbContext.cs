@@ -17,79 +17,86 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        // Участник привязан к отказу (1:N)
-        modelBuilder.Entity<Participant>()
-            .HasOne(p => p.FailureRecord)
-            .WithMany(fr => fr.Participants)
-            .HasForeignKey(p => p.FailureRecordId)
-            .OnDelete(DeleteBehavior.Cascade);
+{
+    // Участник → Отказ (1:N)
+    modelBuilder.Entity<Participant>()
+        .HasOne(p => p.FailureRecord)
+        .WithMany(fr => fr.Participants)
+        .HasForeignKey(p => p.FailureRecordId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-        // Матрица сравнения факторов
-        modelBuilder.Entity<ComparisonMatrix>()
-            .HasOne(cm => cm.FactorA)
-            .WithMany()
-            .HasForeignKey(cm => cm.FactorAId)
-            .OnDelete(DeleteBehavior.Cascade);
+    // FailureFactors (M:N)
+    modelBuilder.Entity<FailureFactor>()
+        .HasKey(ff => new { ff.FailureRecordId, ff.FactorId });
 
-        modelBuilder.Entity<ComparisonMatrix>()
-            .HasOne(cm => cm.FactorB)
-            .WithMany()
-            .HasForeignKey(cm => cm.FactorBId)
-            .OnDelete(DeleteBehavior.Cascade);
+    modelBuilder.Entity<FailureFactor>()
+        .HasOne(ff => ff.FailureRecord)
+        .WithMany(fr => fr.FailureFactors)
+        .HasForeignKey(ff => ff.FailureRecordId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-        // Матрица вины участников
-        modelBuilder.Entity<ParticipantMatrix>()
-            .HasOne(pm => pm.ParticipantA)
-            .WithMany()
-            .HasForeignKey(pm => pm.ParticipantAId)
-            .OnDelete(DeleteBehavior.Cascade);
+    modelBuilder.Entity<FailureFactor>()
+        .HasOne(ff => ff.Factor)
+        .WithMany()
+        .HasForeignKey(ff => ff.FactorId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<ParticipantMatrix>()
-            .HasOne(pm => pm.ParticipantB)
-            .WithMany()
-            .HasForeignKey(pm => pm.ParticipantBId)
-            .OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<FailureFactor>()
-            .HasKey(ff => new { ff.FailureRecordId, ff.FactorId });
+    // ComparisonMatrix (матрица факторов)
+    modelBuilder.Entity<ComparisonMatrix>()
+        .HasOne(cm => cm.FactorA)
+        .WithMany()
+        .HasForeignKey(cm => cm.FactorAId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<FailureFactor>()
-            .HasOne(ff => ff.FailureRecord)
-            .WithMany(fr => fr.FailureFactors)
-            .HasForeignKey(ff => ff.FailureRecordId)
-            .OnDelete(DeleteBehavior.Cascade);
+    modelBuilder.Entity<ComparisonMatrix>()
+        .HasOne(cm => cm.FactorB)
+        .WithMany()
+        .HasForeignKey(cm => cm.FactorBId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<FailureFactor>()
-            .HasOne(ff => ff.Factor)
-            .WithMany()
-            .HasForeignKey(ff => ff.FactorId)
-            .OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<ParticipantMatrix>()
-            .HasOne(pm => pm.Factor)
-            .WithMany()
-            .HasForeignKey(pm => pm.FactorId)
-            .OnDelete(DeleteBehavior.Cascade);
+    modelBuilder.Entity<ComparisonMatrix>()
+        .HasOne(cm => cm.FailureRecord)
+        .WithMany(fr => fr.ComparisonMatrices)
+        .HasForeignKey(cm => cm.FailureRecordId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<ParticipantMatrix>()
-            .HasOne(pm => pm.ParticipantA)
-            .WithMany()
-            .HasForeignKey(pm => pm.ParticipantAId)
-            .OnDelete(DeleteBehavior.Cascade);
+    // ParticipantMatrix (матрицы участников по факторам)
+    modelBuilder.Entity<ParticipantMatrix>()
+        .HasOne(pm => pm.Factor)
+        .WithMany()
+        .HasForeignKey(pm => pm.FactorId)
+        .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<ParticipantMatrix>()
-            .HasOne(pm => pm.ParticipantB)
-            .WithMany()
-            .HasForeignKey(pm => pm.ParticipantBId)
-            .OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<QuestionnaireAnswer>()
-            .HasOne(qa => qa.Participant)
-            .WithMany()
-            .HasForeignKey(qa => qa.ParticipantId)
-            .OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<FailureRecord>()
-            .HasOne(fr => fr.CreatedBy)
-            .WithMany(u => u.FailureRecords)
-            .HasForeignKey(fr => fr.CreatedByUserId)
-            .OnDelete(DeleteBehavior.SetNull);
+    modelBuilder.Entity<ParticipantMatrix>()
+        .HasOne(pm => pm.ParticipantA)
+        .WithMany()
+        .HasForeignKey(pm => pm.ParticipantAId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    modelBuilder.Entity<ParticipantMatrix>()
+        .HasOne(pm => pm.ParticipantB)
+        .WithMany()
+        .HasForeignKey(pm => pm.ParticipantBId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    modelBuilder.Entity<ParticipantMatrix>()
+        .HasOne(pm => pm.FailureRecord)
+        .WithMany(fr => fr.ParticipantMatrices)
+        .HasForeignKey(pm => pm.FailureRecordId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    // QuestionnaireAnswer (анкета)
+    modelBuilder.Entity<QuestionnaireAnswer>()
+        .HasOne(qa => qa.Participant)
+        .WithMany()
+        .HasForeignKey(qa => qa.ParticipantId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+    // Пользователь → Отказы
+    modelBuilder.Entity<FailureRecord>()
+        .HasOne(fr => fr.CreatedBy)
+        .WithMany(u => u.FailureRecords)
+        .HasForeignKey(fr => fr.CreatedByUserId)
+        .OnDelete(DeleteBehavior.SetNull);
     }
 }

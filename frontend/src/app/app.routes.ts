@@ -7,6 +7,7 @@ import { FailureDetailComponent } from './components/failure-detail/failure-deta
 import { LoginComponent } from './components/login/login';
 import { authGuard } from './services/auth.guard';
 import { AdminPanelComponent } from './components/admin-panel/admin-panel';
+import { DashboardComponent } from './components/dashboard/dashboard';
 
 export const routes: Routes = [
   { path: 'failures', component: FailureListComponent, canActivate: [authGuard] },
@@ -16,6 +17,7 @@ export const routes: Routes = [
   { path: 'factors', component: FactorsListComponent, canActivate: [authGuard] },
   { path: 'login', component: LoginComponent },
   { path: 'admin', component: AdminPanelComponent, canActivate: [authGuard] },
+  { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
   { path: '', redirectTo: '/failures', pathMatch: 'full' }
 ];
 

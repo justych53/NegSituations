@@ -4,10 +4,13 @@ import { Observable } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
- // private baseUrl = 'http://89.108.78.139:5279/api';
-  private baseUrl =  'http://localhost:5279/api';
+  // Публичные поля для доступа из StatisticsService
+  public baseUrl = 'http://localhost:5279/api';
+  public http: HttpClient;   // будет установлен через конструктор
 
-  constructor(private http: HttpClient) {}
+  constructor(http: HttpClient) {
+    this.http = http;        // сохраняем публично
+  }
 
   // FailureRecords
   getFailureRecords(): Observable<any[]> {

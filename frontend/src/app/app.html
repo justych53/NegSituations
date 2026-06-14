@@ -2,6 +2,7 @@
   <div class="container">
     <a class="navbar-brand" routerLink="/failures">Анализ отказов</a>
     <div class="navbar-nav">
+      <a class="nav-link" routerLink="/dashboard" routerLinkActive="active">Дашборд</a>
       <a class="nav-link" routerLink="/failures" routerLinkActive="active">Отказы</a>
       <a class="nav-link" routerLink="/factors" routerLinkActive="active">Факторы</a>
       <ng-container *ngIf="auth.isAdmin()">

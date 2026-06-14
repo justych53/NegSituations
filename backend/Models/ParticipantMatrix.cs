@@ -12,4 +12,5 @@ public class ParticipantMatrix
     public int ParticipantBId { get; set; }
     public Participant ParticipantB { get; set; } = null!;
     public double Score { get; set; }
+
 }
