@@ -13,9 +13,13 @@ export class ApiService {
   }
 
   // FailureRecords
-  getFailureRecords(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.baseUrl}/FailureRecords`);
+  getFailureRecordsPage(page: number, pageSize: number, search?: string): Observable<{ items: any[], totalCount: number }> {
+  let params = `?page=${page}&pageSize=${pageSize}`;
+  if (search?.trim()) {
+    params += `&search=${encodeURIComponent(search.trim())}`;
   }
+  return this.http.get<{ items: any[], totalCount: number }>(`${this.baseUrl}/FailureRecords${params}`);
+}
 
   getFailureRecordById(id: number): Observable<any> {
     return this.http.get<any>(`${this.baseUrl}/FailureRecords/${id}`);
@@ -107,5 +111,8 @@ createUser(username: string, password: string): Observable<any> {
 
 deleteUser(id: number): Observable<any> {
   return this.http.delete(`${this.baseUrl}/Users/${id}`);
+}
+seedTestData(): Observable<any> {
+  return this.http.post(`${this.baseUrl}/FailureRecords/seed-test-data`, {});
 }
 }

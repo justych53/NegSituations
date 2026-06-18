@@ -38,12 +38,40 @@ public class FailureRecordsController : ControllerBase
     return int.Parse(claim.Value);
 }
 
-        [HttpGet]
-public async Task<ActionResult<IEnumerable<object>>> GetAll()
+      [HttpGet]
+[Authorize]
+public async Task<ActionResult<PaginatedResponse<object>>> GetAll(
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 5,
+    [FromQuery] string? search = null)
 {
-    return await _context.FailureRecords
+    if (page < 1) page = 1;
+    if (pageSize < 1) pageSize = 5;
+
+    IQueryable<FailureRecord> query = _context.FailureRecords
         .Include(fr => fr.Participants)
         .Include(fr => fr.CreatedBy)
+        .AsQueryable();
+
+    // Поиск
+    if (!string.IsNullOrWhiteSpace(search))
+    {
+        var term = search.Trim().ToLower();
+        query = query.Where(fr =>
+            fr.DescFailure.ToLower().Contains(term) ||
+            fr.ResInvest.ToLower().Contains(term) ||
+            fr.Participants.Any(p => p.Name.ToLower().Contains(term)) ||
+            (fr.CreatedBy != null && fr.CreatedBy.Username.ToLower().Contains(term)));
+    }
+
+    // Сортировка для стабильной пагинации (по дате создания, затем по Id)
+    query = query.OrderByDescending(fr => fr.CreatedAt).ThenByDescending(fr => fr.Id);
+
+    var totalCount = await query.CountAsync();
+
+    var items = await query
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
         .Select(fr => new
         {
             fr.Id,
@@ -58,9 +86,17 @@ public async Task<ActionResult<IEnumerable<object>>> GetAll()
             fr.CreatedAt,
             fr.UpdatedAt,
             CreatedBy = fr.CreatedBy != null ? fr.CreatedBy.Username : null,
-            CreatedByUserId = fr.CreatedByUserId   // нужно для проверки на фронте
+            CreatedByUserId = fr.CreatedByUserId
         })
         .ToListAsync();
+
+    return Ok(new PaginatedResponse<object>
+    {
+        Items = items.Cast<object>().ToList(),
+        TotalCount = totalCount,
+        Page = page,
+        PageSize = pageSize
+    });
 }
 
     [HttpGet("{id}")]
@@ -157,6 +193,68 @@ public async Task<ActionResult<List<ParticipantDto>>> DetectParticipants([FromBo
         .ToList();
 
     return Ok(participants);
+}
+[HttpPost("seed-test-data")]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> SeedTestData()
+{
+    var rnd = new Random();
+    var factors = await _context.Factors.ToListAsync();
+    var admin = await _context.Users.FirstOrDefaultAsync(u => u.Role == "Admin");
+    if (admin == null) return BadRequest("Администратор не найден");
+
+    for (int i = 1; i <= 100; i++)
+    {
+        var record = new FailureRecord
+        {
+            DescFailure = $"Тестовый отказ №{i}: {GenerateRandomText(rnd, 10)}",
+            ResInvest = $"Результат расследования №{i}: {GenerateRandomText(rnd, 8)}",
+            CreatedByUserId = admin.Id,
+            CreatedAt = DateTime.UtcNow.AddDays(-rnd.Next(0, 365)),
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // Добавляем 1-3 участников
+        int participantsCount = rnd.Next(1, 4);
+        for (int j = 0; j < participantsCount; j++)
+        {
+            record.Participants.Add(new Participant
+            {
+                Name = GetRandomParticipantName(rnd),
+                Position = GetRandomPosition(rnd)
+            });
+        }
+
+        // Привязываем 1-3 случайных фактора
+        var selectedFactors = factors.OrderBy(x => rnd.Next()).Take(rnd.Next(1, 4));
+        foreach (var factor in selectedFactors)
+        {
+            record.FailureFactors.Add(new FailureFactor { FactorId = factor.Id });
+        }
+
+        _context.FailureRecords.Add(record);
+    }
+
+    await _context.SaveChangesAsync();
+    return Ok(new { message = "100 тестовых отказов создано" });
+}
+
+private string GenerateRandomText(Random rnd, int words)
+{
+    var wordsList = new[] { "нарушение", "отказ", "сбой", "квитирование", "защита", "РЗА", "дисплей", "сигнал", "ввод", "УРОВ", "бланк", "переключений", "ячейка", "приёмка", "контроль", "состояние" };
+    return string.Join(" ", Enumerable.Range(0, words).Select(_ => wordsList[rnd.Next(wordsList.Length)]));
+}
+
+private string GetRandomParticipantName(Random rnd)
+{
+    var names = new[] { "Иванов А.А.", "Петров Б.В.", "Сидоров В.Г.", "Кузнецов Д.Е.", "Смирнов Е.Ж.", "Попов З.И.", "Соколов К.Л.", "Морозов М.Н." };
+    return names[rnd.Next(names.Length)];
+}
+
+private string GetRandomPosition(Random rnd)
+{
+    var positions = new[] { "инженер", "оператор", "подрядчик", "начальник участка", "мастер", "электромонтёр", "диспетчер" };
+    return positions[rnd.Next(positions.Length)];
 }
 
     [HttpPost]
