@@ -4,6 +4,7 @@ using backend.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +45,7 @@ builder.Services.AddHttpClient("ExternalService", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["ExternalService:BaseUrl"]!);
 });
+builder.Services.AddScoped<LogService>();
 
 // CORS
 builder.Services.AddCors(options =>

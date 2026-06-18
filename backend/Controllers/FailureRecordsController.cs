@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using backend.Services;
 
 namespace backend.Controllers;
 
@@ -17,6 +18,7 @@ public class FailureRecordsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly LogService _logService;
 
     private static readonly Dictionary<string, string> FactorMapping = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -25,8 +27,9 @@ public class FailureRecordsController : ControllerBase
         { "TECH", "Технический" }
     };
 
-    public FailureRecordsController(AppDbContext context, IConfiguration configuration)
+    public FailureRecordsController(AppDbContext context, IConfiguration configuration, LogService logService)
     {
+        _logService = logService;
         _context = context;
         _configuration = configuration;
     }
@@ -291,6 +294,7 @@ private string GetRandomPosition(Random rnd)
 
         _context.FailureRecords.Add(record);
         await _context.SaveChangesAsync();
+        await _logService.LogAsync("Info", User.FindFirst(ClaimTypes.Name)?.Value, "Создание отказа", $"Id={record.Id}");
         return CreatedAtAction(nameof(GetById), new { id = record.Id }, new
             {
                 record.Id,
@@ -308,70 +312,58 @@ private string GetRandomPosition(Random rnd)
             });
     }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, [FromBody] CreateFailureRecordDto dto)
+[HttpPut("{id}")]
+public async Task<IActionResult> Update(int id, [FromBody] CreateFailureRecordDto dto)
+{
+    var userId = GetCurrentUserId();
+    var username = User.FindFirst(ClaimTypes.Name)?.Value;  // <-- добавлено
+
+    var record = await _context.FailureRecords
+        .Include(fr => fr.Participants)
+        .Include(fr => fr.FailureFactors)
+        .FirstOrDefaultAsync(fr => fr.Id == id);
+
+    if (record == null) return NotFound();
+
+    if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+        return Forbid("Вы не можете редактировать чужой отказ");
+
+    record.UpdatedAt = DateTime.UtcNow;
+
+    record.DescFailure = dto.DescFailure;
+    record.ResInvest = dto.ResInvest;
+
+    _context.Participants.RemoveRange(record.Participants);
+    if (dto.Participants != null)
     {
-        var userId = GetCurrentUserId();
-        var record = await _context.FailureRecords
-            .Include(fr => fr.Participants)
-            .Include(fr => fr.FailureFactors)
-            .FirstOrDefaultAsync(fr => fr.Id == id);
-
-        if (record == null) return NotFound();
-
-        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
-            return Forbid("Вы не можете редактировать чужой отказ");
-
-        record.UpdatedAt = DateTime.UtcNow;
-
-        record.DescFailure = dto.DescFailure;
-        record.ResInvest = dto.ResInvest;
-
-        _context.Participants.RemoveRange(record.Participants);
-        if (dto.Participants != null)
+        foreach (var p in dto.Participants)
         {
-            foreach (var p in dto.Participants)
+            record.Participants.Add(new Participant
             {
-                record.Participants.Add(new Participant
-                {
-                    Name = p.Name,
-                    Position = p.Position,
-                    FailureRecordId = id
-                });
-            }
+                Name = p.Name,
+                Position = p.Position,
+                FailureRecordId = id
+            });
         }
-
-        _context.FailureFactors.RemoveRange(record.FailureFactors);
-        if (dto.FactorIds != null)
-        {
-            foreach (var fid in dto.FactorIds)
-            {
-                _context.FailureFactors.Add(new FailureFactor
-                {
-                    FailureRecordId = id,
-                    FactorId = fid
-                });
-            }
-        }
-
-        await _context.SaveChangesAsync();
-        return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(int id)
+    _context.FailureFactors.RemoveRange(record.FailureFactors);
+    if (dto.FactorIds != null)
     {
-        var userId = GetCurrentUserId();
-        var record = await _context.FailureRecords.FindAsync(id);
-        if (record == null) return NotFound();
-
-        if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
-            return Forbid();
-
-        _context.FailureRecords.Remove(record);
-        await _context.SaveChangesAsync();
-        return NoContent();
+        foreach (var fid in dto.FactorIds)
+        {
+            _context.FailureFactors.Add(new FailureFactor
+            {
+                FailureRecordId = id,
+                FactorId = fid
+            });
+        }
     }
+
+    await _context.SaveChangesAsync();
+    await _logService.LogAsync("Info", username, "Редактирование отказа", $"Id={id}");
+    return NoContent();
+}
 
 [HttpPost("{id}/auto-fill-matrix")]
 [Authorize]
@@ -490,6 +482,8 @@ public async Task<IActionResult> AutoFillMatrix(int id)
     catch (Exception ex)
     {
         Console.WriteLine($"AutoFillMatrix error: {ex}");
+        await _logService.LogAsync("Error", User.FindFirst(ClaimTypes.Name)?.Value, 
+        "Ошибка вызова внешнего сервиса", ex.Message);
         return StatusCode(500, $"Internal error: {ex.Message}");
     }
 }

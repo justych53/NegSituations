@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using backend.Data;
 using backend.Models;
+using backend.Services;
 
 namespace backend.Controllers;
 
@@ -14,11 +15,13 @@ public class AuthController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly LogService _logService;
 
-    public AuthController(AppDbContext context, IConfiguration configuration)
+    public AuthController(AppDbContext context, IConfiguration configuration, LogService logService)
     {
         _context = context;
         _configuration = configuration;
+        _logService = logService;
     }
 
     public class LoginDto
@@ -28,12 +31,16 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
         var user = _context.Users.SingleOrDefault(u => u.Username == dto.Username);
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+        {
+            await _logService.LogAsync("Warning", dto.Username, "Неудачная попытка входа");
             return Unauthorized("Неверное имя пользователя или пароль");
+        }
 
+        await _logService.LogAsync("Info", dto.Username, "Успешный вход в систему");
         var token = GenerateJwtToken(user);
         return Ok(new { token, user = new { user.Id, user.Username, user.Role } });
     }

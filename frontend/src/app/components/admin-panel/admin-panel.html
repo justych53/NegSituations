@@ -44,6 +44,8 @@
   </table>
 </div>
 
+<a class="nav-link" routerLink="/logs" routerLinkActive="active" *ngIf="auth.isAdmin()">Логи</a>
+
 <ng-template #notAdmin>
   <div class="alert alert-danger">Доступ запрещён. Только для администраторов.</div>
 </ng-template>

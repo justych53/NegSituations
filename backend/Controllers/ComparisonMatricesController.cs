@@ -4,6 +4,7 @@ using backend.Data;
 using backend.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using backend.Services;
 
 namespace backend.Controllers;
 
@@ -12,10 +13,12 @@ namespace backend.Controllers;
 public class ComparisonMatricesController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly LogService _logService;
 
-    public ComparisonMatricesController(AppDbContext context)
+    public ComparisonMatricesController(AppDbContext context, LogService logService)
     {
         _context = context;
+        _logService = logService;
     }
 
     private int GetCurrentUserId()
@@ -54,6 +57,7 @@ public class ComparisonMatricesController : ControllerBase
 {
     var userId = GetCurrentUserId();
     var record = await _context.FailureRecords.FindAsync(dto.FailureRecordId);
+    var username = User.FindFirst(ClaimTypes.Name)?.Value;
     if (record == null) return NotFound();
     if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
         return Forbid();
@@ -76,6 +80,7 @@ public class ComparisonMatricesController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        await _logService.LogAsync("Info", username, "Сохранение матрицы факторов", $"FailureId={dto.FailureRecordId}");
         return Ok();
     }
 

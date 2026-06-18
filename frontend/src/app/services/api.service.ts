@@ -115,4 +115,10 @@ deleteUser(id: number): Observable<any> {
 seedTestData(): Observable<any> {
   return this.http.post(`${this.baseUrl}/FailureRecords/seed-test-data`, {});
 }
+getLogs(page: number, pageSize: number, level?: string, username?: string): Observable<{ items: any[], totalCount: number }> {
+  let params = `?page=${page}&pageSize=${pageSize}`;
+  if (level) params += `&level=${encodeURIComponent(level)}`;
+  if (username) params += `&username=${encodeURIComponent(username)}`;
+  return this.http.get<{ items: any[], totalCount: number }>(`${this.baseUrl}/Logs${params}`);
+}
 }

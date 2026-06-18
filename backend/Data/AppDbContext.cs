@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<FailureFactor> FailureFactors => Set<FailureFactor>();
     public DbSet<QuestionnaireAnswer> QuestionnaireAnswers => Set<QuestionnaireAnswer>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<LogEntry> LogEntries => Set<LogEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
 {
