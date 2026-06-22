@@ -33,12 +33,15 @@
 
   <!-- ======================== ИНФОРМАЦИЯ ======================== -->
 <div *ngIf="activeTab === 'info'">
-  <ng-container *ngIf="canEdit">
-    <a [routerLink]="['/failures', failure.id, 'edit']" class="btn btn-warning me-2">Редактировать</a>
-  </ng-container>
-  <ng-container *ngIf="canDelete">
-    <button (click)="deleteFailure()" class="btn btn-danger">Удалить</button>
-  </ng-container>
+  <div class="mb-3">
+    <ng-container *ngIf="canEdit">
+      <a [routerLink]="['/failures', failure.id, 'edit']" class="btn btn-warning me-2">Редактировать</a>
+    </ng-container>
+    <ng-container *ngIf="canDelete">
+      <button (click)="deleteFailure()" class="btn btn-danger me-2">Удалить</button>
+    </ng-container>
+    <button (click)="exportToPdf()" class="btn btn-outline-dark">Экспорт в PDF</button>
+  </div>
 </div>
 
  <!-- ======================== ФАКТОРЫ ======================== -->

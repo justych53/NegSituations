@@ -5,6 +5,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { SaatyScaleComponent } from '../saaty-scale/saaty-scale';
 import { AuthService } from '../../services/auth';
+import jsPDF from 'jspdf';
+import { Chart, registerables } from 'chart.js';
+
 
 @Component({
   selector: 'app-failure-detail',
@@ -93,6 +96,7 @@ get canEdit(): boolean {
       this.loadAllParticipantMatrices();
     });
   }
+  
 
   // ====== Факторы: инициализация, загрузка, расчёт ======
   initFactorScores(): void {
@@ -501,5 +505,260 @@ get currentIsConsistent(): boolean {
 
 get currentParticipantSaved(): boolean {
   return this.participantSavedByFactor[this.selectedFactorIndex] ?? false;
+}
+private calcColWidths(doc: jsPDF, headers: string[], body: string[][], maxWidth: number, fontSize: number): number[] {
+  doc.setFont('Roboto');
+  doc.setFontSize(fontSize);
+  const padding = 4;
+  const colCount = headers.length;
+  const rawWidths: number[] = [];
+  for (let c = 0; c < colCount; c++) {
+    let maxW = doc.getTextWidth(headers[c]);
+    for (const row of body) {
+      const w = doc.getTextWidth(row[c] ?? '');
+      if (w > maxW) maxW = w;
+    }
+    rawWidths.push(maxW + padding);
+  }
+  const totalRaw = rawWidths.reduce((s, w) => s + w, 0);
+  const scale = maxWidth / totalRaw;
+  return rawWidths.map(w => w * scale);
+}
+
+private drawTable(
+  doc: jsPDF,
+  startY: number,
+  headers: string[],
+  body: string[][],
+  colWidths: number[],
+  fontSize: number,
+  headerFill: [number, number, number],
+  rowHeight: number
+): number {
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const padding = 2;
+  const colCount = headers.length;
+  let y = startY;
+
+  doc.setFont('Roboto');
+  doc.setFontSize(fontSize);
+
+  if (y + rowHeight > pageHeight - 15) {
+    doc.addPage();
+    y = 20;
+  }
+
+  let x = margin;
+  for (let c = 0; c < colCount; c++) {
+    doc.setFillColor(headerFill[0], headerFill[1], headerFill[2]);
+    doc.setDrawColor(180, 180, 180);
+    doc.rect(x, y, colWidths[c], rowHeight, 'FD');
+    doc.setFont('Roboto');
+    doc.setFontSize(fontSize);
+    doc.text(headers[c], x + padding, y + rowHeight - padding);
+    x += colWidths[c];
+  }
+  y += rowHeight;
+
+  for (const row of body) {
+    if (y + rowHeight > pageHeight - 15) {
+      doc.addPage();
+      y = 20;
+    }
+
+    x = margin;
+    for (let c = 0; c < colCount; c++) {
+      doc.setDrawColor(200, 200, 200);
+      doc.rect(x, y, colWidths[c], rowHeight, 'D');
+      doc.setFont('Roboto');
+      doc.setFontSize(fontSize);
+      doc.text(row[c] ?? '', x + padding, y + rowHeight - padding);
+      x += colWidths[c];
+    }
+    y += rowHeight;
+  }
+
+  return y;
+}
+
+async exportToPdf(): Promise<void> {
+  if (!this.failure) return;
+
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 20;
+
+  // ---------- РУССКИЙ ШРИФТ ----------
+  await doc.addFont('/assets/fonts/Roboto-Regular.ttf', 'Roboto', 'normal');
+  doc.setFont('Roboto');
+
+  // ---------- ЗАГОЛОВОК ----------
+  doc.setFontSize(16);
+  doc.text(`Отказ #${this.failure.id}`, pageWidth / 2, y, { align: 'center' });
+  y += 8;
+
+  doc.setFontSize(10);
+  const createdBy = this.failure.createdBy || 'неизвестен';
+  const createdAt = this.failure.createdAt ? new Date(this.failure.createdAt).toLocaleString() : '—';
+  doc.text(`Автор: ${createdBy}`, 14, y);
+  y += 5;
+  doc.text(`Дата создания: ${createdAt}`, 14, y);
+  y += 10;
+
+  // ---------- ОПИСАНИЕ И РЕЗУЛЬТАТ ----------
+  doc.setFontSize(12);
+  doc.text('Описание отказа', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  const splitDesc = doc.splitTextToSize(this.failure.descFailure || '—', pageWidth - 28);
+  doc.text(splitDesc, 14, y);
+  y += splitDesc.length * 5 + 4;
+
+  doc.setFontSize(12);
+  doc.text('Результат расследования', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  const splitRes = doc.splitTextToSize(this.failure.resInvest || '—', pageWidth - 28);
+  doc.text(splitRes, 14, y);
+  y += splitRes.length * 5 + 4;
+
+  // ---------- УЧАСТНИКИ ----------
+  doc.setFontSize(12);
+  doc.text('Участники отказа', 14, y);
+  y += 6;
+  doc.setFontSize(10);
+  if (this.failure.participants?.length > 0) {
+    for (const p of this.failure.participants) {
+      doc.text(`• ${p.name} (${p.position})`, 18, y);
+      y += 5;
+    }
+  } else {
+    doc.text('Нет участников', 18, y);
+    y += 5;
+  }
+  y += 4;
+
+  // ---------- ТАБЛИЦА ВЕСОВ ФАКТОРОВ ----------
+  if (this.factorWeights.length > 0) {
+    doc.setFontSize(12);
+    doc.text('Веса факторов', 14, y);
+    y += 6;
+
+    const factorData = this.factors.map((f, i) => [
+      f.name,
+      this.factorWeights[i].toFixed(3),
+      `${(this.factorWeights[i] * 100).toFixed(1)}%`
+    ]);
+
+    const cols1 = this.calcColWidths(doc, ['Фактор', 'Вес', '%'], factorData, pageWidth - 28, 9);
+    y = this.drawTable(doc, y, ['Фактор', 'Вес', '%'], factorData, cols1, 9, [220, 220, 220], 7) + 6;
+  }
+
+  // ---------- ТАБЛИЦА СИНТЕЗА ----------
+  if (this.synthesizedWeights.length > 0) {
+    doc.setFontSize(12);
+    doc.text('Распределение вины участников', 14, y);
+    y += 6;
+
+    const synthData = this.synthesizedWeights.map(sw => [
+      sw.name,
+      ...sw.contributions.map((c: any) => c.contribution.toFixed(3)),
+      `${(sw.weight * 100).toFixed(1)}%`
+    ]);
+    const factorNames = this.factors.map(f => f.name);
+
+    const synthHeaders = ['Участник', ...factorNames, 'Итог'];
+    const cols2 = this.calcColWidths(doc, synthHeaders, synthData, pageWidth - 28, 8);
+    y = this.drawTable(doc, y, synthHeaders, synthData, cols2, 8, [255, 235, 205], 7) + 10;
+  }
+
+  // ---------- ДИАГРАММА ВЕСОВ ФАКТОРОВ ----------
+  if (this.factorWeights.length > 0) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      Chart.register(...registerables);
+      const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: this.factors.map(f => f.name),
+          datasets: [{
+            data: this.factorWeights.map(w => w * 100),
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
+          }]
+        },
+        options: {
+          responsive: false,
+          animation: false,
+          plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 14 } } } }
+        }
+      });
+
+      chart.update();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const imgData = canvas.toDataURL('image/png');
+
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text('Диаграмма весов факторов', pageWidth / 2, 20, { align: 'center' });
+      doc.addImage(imgData, 'PNG', (pageWidth - 140) / 2, 30, 140, 140);
+      chart.destroy();
+    }
+  }
+
+  // ---------- ДИАГРАММА ВИНЫ УЧАСТНИКОВ ----------
+  if (this.synthesizedWeights.length > 0) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 500;   // чуть шире для подписей
+    canvas.height = 500;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      Chart.register(...registerables);
+      const chart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: this.synthesizedWeights.map(sw => sw.name),
+          datasets: [{
+            data: this.synthesizedWeights.map(sw => sw.weight * 100),
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+                              '#C9CBCF', '#FFA07A', '#BA55D3', '#32CD32']
+          }]
+        },
+        options: {
+          responsive: false,
+          animation: false,
+          plugins: { legend: { display: true, position: 'bottom', labels: { font: { size: 12 } } } }
+        }
+      });
+
+      chart.update();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const imgData = canvas.toDataURL('image/png');
+
+      doc.addPage();
+      doc.setFontSize(14);
+      doc.text('Распределение вины участников', pageWidth / 2, 20, { align: 'center' });
+      doc.addImage(imgData, 'PNG', (pageWidth - 150) / 2, 30, 150, 150);
+      chart.destroy();
+    }
+  }
+
+  // ---------- ФУТЕР ----------
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.text(
+      `Сгенерировано системой расследования отказов. Страница ${i} из ${pageCount}`,
+      pageWidth / 2,
+      doc.internal.pageSize.getHeight() - 10,
+      { align: 'center' }
+    );
+  }
+
+  doc.save(`Отказ_${this.failure.id}_${createdBy}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
 }
