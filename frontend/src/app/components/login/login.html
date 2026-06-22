@@ -1,17 +1,32 @@
-<div class="container mt-5">
-  <div class="row justify-content-center">
-    <div class="col-md-4">
-      <h3 class="mb-3">Вход в систему</h3>
-      <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
-      <div class="mb-3">
-        <label class="form-label">Имя пользователя</label>
-        <input [(ngModel)]="username" class="form-control" />
+<div class="d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="col-md-5 col-lg-4">
+    <div class="text-center mb-4">
+      <i class="bi bi-shield-check text-primary" style="font-size: 3rem;"></i>
+      <h3 class="fw-bold mt-2">Анализ отказов</h3>
+      <p class="text-muted">Войдите в систему для продолжения</p>
+    </div>
+    <div class="card shadow-lg">
+      <div class="card-body p-4">
+        <h5 class="card-title mb-3">Вход в систему</h5>
+        <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+        <div class="mb-3">
+          <label class="form-label fw-medium">Имя пользователя</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-person"></i></span>
+            <input [(ngModel)]="username" class="form-control" placeholder="Введите логин" />
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-medium">Пароль</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" [(ngModel)]="password" class="form-control" placeholder="Введите пароль" (keyup.enter)="login()" />
+          </div>
+        </div>
+        <button class="btn btn-primary w-100" (click)="login()">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Войти
+        </button>
       </div>
-      <div class="mb-3">
-        <label class="form-label">Пароль</label>
-        <input type="password" [(ngModel)]="password" class="form-control" />
-      </div>
-      <button class="btn btn-primary" (click)="login()">Войти</button>
     </div>
   </div>
 </div>

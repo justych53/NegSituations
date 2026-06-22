@@ -18,7 +18,7 @@ import { Chart, registerables } from 'chart.js';
 export class FailureDetailComponent implements OnInit {
   failureId!: number;
   failure: any = null;
-  activeTab: 'info' | 'factors' | 'participants' | 'questionnaire' = 'info';
+  activeTab: 'factors' | 'participants' | 'questionnaire' = 'factors';
 
   // Таблица RI
   private RI_TABLE: { [n: number]: number } = {
@@ -36,8 +36,7 @@ export class FailureDetailComponent implements OnInit {
   ciFactors: number | null = null;
   crFactors: number | null = null;
   isConsistentFactors: boolean = true;
-  autoFilling = false;
-  rawAhp: any = null; 
+  autoFilling = false; 
   // ====== Участники (общий список) ======
   participants: any[] = [];
 
@@ -112,8 +111,6 @@ get canEdit(): boolean {
 loadFactorMatrix(): void {
   if (this.factors.length < 2) return;
   this.api.getComparisonMatrix(this.failureId).subscribe(matrix => {
-    console.group('🔷 Factor matrix loaded from backend');
-    console.log('Raw data:', matrix);
     this.initFactorScores();
     for (const entry of matrix) {
       const key = `${entry.factorAId}_${entry.factorBId}`;
@@ -121,11 +118,8 @@ loadFactorMatrix(): void {
       if (!isNaN(score)) {
         const rounded = Number(score.toFixed(4));
         this.factorScores[key] = rounded;
-        console.log(`Set ${key} = ${rounded}`);
       }
     }
-    console.log('Final factorScores:', { ...this.factorScores });
-    console.groupEnd();
     this.calculateFactors();
   });
 }
@@ -185,12 +179,6 @@ setFactorScore(aId: number, bId: number, value: number): void {
     return (this.factorWeights[i] * 100).toFixed(2);
   }
 
-  getSortedFactors(): any[] {
-    return this.factors
-      .map((f, i) => ({ name: f.name, weight: this.factorWeights[i] }))
-      .sort((a, b) => b.weight - a.weight);
-  }
-
   // ====== Участники по факторам ======
   initAllParticipantScores(): void {
     if (this.participants.length < 2) return;
@@ -217,9 +205,6 @@ loadParticipantMatrixForFactor(fi: number): void {
   if (this.participants.length < 2) return;
   const factorId = this.factors[fi].id;
   this.api.getParticipantMatrixByFactor(this.failureId, factorId).subscribe(matrix => {
-    console.group(`🔶 Participant matrix loaded for factor "${this.factors[fi].name}" (id=${factorId})`);
-    console.log('Raw data:', matrix);
-    // Инициализируем дефолтные единицы
     this.participantScoresByFactor[fi] = {};
     for (let i = 0; i < this.participants.length; i++) {
       for (let j = i + 1; j < this.participants.length; j++) {
@@ -232,11 +217,8 @@ loadParticipantMatrixForFactor(fi: number): void {
       if (!isNaN(score)) {
         const rounded = Number(score.toFixed(4));
         this.participantScoresByFactor[fi][key] = rounded;
-        console.log(`Set ${key} = ${rounded}`);
       }
     }
-    console.log('Final scores for factor:', { ...this.participantScoresByFactor[fi] });
-    console.groupEnd();
     this.calculateParticipantsForFactor(fi);
   });
 }
@@ -313,13 +295,6 @@ loadParticipantMatrixForFactor(fi: number): void {
     return ((this.participantWeightsByFactor[fi]?.[pi] || 0) * 100).toFixed(2);
   }
 
-
-  getSortedParticipantsByFactor(fi: number): any[] {
-    if (!this.participantWeightsByFactor[fi]) return [];
-    return this.participants
-      .map((p, i) => ({ name: `${p.name} (${p.position})`, weight: this.participantWeightsByFactor[fi][i] }))
-      .sort((a, b) => b.weight - a.weight);
-  }
 
   // ====== Общий метод расчёта весов и согласованности ======
   private calculateWeightsAndConsistency(matrix: number[][], n: number): {
@@ -423,7 +398,6 @@ autoFillMatrix(): void {
     this.api.autoFillMatrix(this.failureId).subscribe({
       next: () => {
         this.autoFilling = false;
-        console.log(' Auto-fill completed, reloading matrices...');
         this.loadFactorMatrix();
         for (let fi = 0; fi < this.factors.length; fi++) {
           this.loadParticipantMatrixForFactor(fi);
@@ -435,16 +409,6 @@ autoFillMatrix(): void {
       }
     });
   }
-}
-
-debugMatrices(): void {
-  console.group(' Debug: current matrix states');
-  console.log('Factor scores:', this.factorScores);
-  console.log('Factor weights:', this.factorWeights);
-  console.log('Participant scores by factor:', this.participantScoresByFactor);
-  console.log('Participant weights by factor:', this.participantWeightsByFactor);
-  console.groupEnd();
-  alert('Данные матриц выведены в консоль (F12)');
 }
 
 loadQuestionnaireAnswers(): void {
@@ -600,7 +564,7 @@ async exportToPdf(): Promise<void> {
 
   doc.setFontSize(10);
   const createdBy = this.failure.createdBy || 'неизвестен';
-  const createdAt = this.failure.createdAt ? new Date(this.failure.createdAt).toLocaleString() : '—';
+  const createdAt = this.failure.createdAt ? (() => { const d = new Date(this.failure.createdAt); return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}.${d.getFullYear()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`; })() : '—';
   doc.text(`Автор: ${createdBy}`, 14, y);
   y += 5;
   doc.text(`Дата создания: ${createdAt}`, 14, y);

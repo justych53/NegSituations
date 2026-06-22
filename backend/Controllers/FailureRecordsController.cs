@@ -4,7 +4,6 @@ using backend.Data;
 using backend.Models;
 using backend.Dtos;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using backend.Services;
@@ -365,6 +364,24 @@ public async Task<IActionResult> Update(int id, [FromBody] CreateFailureRecordDt
     return NoContent();
 }
 
+[HttpDelete("{id}")]
+[Authorize]
+public async Task<IActionResult> Delete(int id)
+{
+    var userId = GetCurrentUserId();
+    var record = await _context.FailureRecords.FindAsync(id);
+    if (record == null) return NotFound();
+
+    if (!User.IsInRole("Admin") && record.CreatedByUserId != userId)
+        return Forbid();
+
+    var username = User.FindFirst(ClaimTypes.Name)?.Value;
+    _context.FailureRecords.Remove(record);
+    await _context.SaveChangesAsync();
+    await _logService.LogAsync("Info", username, "Удаление отказа", $"Id={id}");
+    return NoContent();
+}
+
 [HttpPost("{id}/auto-fill-matrix")]
 [Authorize]
 public async Task<IActionResult> AutoFillMatrix(int id)
@@ -426,7 +443,6 @@ public async Task<IActionResult> AutoFillMatrix(int id)
                             FactorBId = factorB.Id,
                             Score = factorMatrix[i][j]
                         });
-                        Console.WriteLine($"{factorLabels[i]} -> {factorLabels[j]}: {factorMatrix[i][j]}");
                     }
                 }
             }
@@ -469,7 +485,6 @@ public async Task<IActionResult> AutoFillMatrix(int id)
                                 ParticipantBId = pB.Id,
                                 Score = matrix[i][j]
                             });
-                            Console.WriteLine($"Participant: {pA.Name} -> {pB.Name}: {matrix[i][j]}");
                         }
                     }
                 }
@@ -481,7 +496,6 @@ public async Task<IActionResult> AutoFillMatrix(int id)
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"AutoFillMatrix error: {ex}");
         await _logService.LogAsync("Error", User.FindFirst(ClaimTypes.Name)?.Value, 
         "Ошибка вызова внешнего сервиса", ex.Message);
         return StatusCode(500, $"Internal error: {ex.Message}");

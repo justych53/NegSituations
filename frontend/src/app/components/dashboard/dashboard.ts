@@ -30,7 +30,7 @@ export class DashboardComponent implements OnInit {
     labels: [],
     datasets: [{
       data: [],
-      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40']
+      backgroundColor: ['#1e3a5f', '#3b82f6', '#f59e0b', '#10b981', '#64748b', '#ef4444']
     }]
   };
   pieChartOptions: ChartConfiguration['options'] = {

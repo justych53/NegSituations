@@ -3,17 +3,17 @@
 <div class="mb-3">
   <label class="form-label">Описание отказа</label>
   <textarea [(ngModel)]="descFailure" name="desc" class="form-control" rows="3" required></textarea>
-  <button type="button" class="btn btn-outline-secondary mt-2" 
-          (click)="detectParticipants()" 
-          [disabled]="detecting">
-    <span *ngIf="detecting" class="spinner-border spinner-border-sm me-1"></span>
-    Определить участников
-  </button>
 </div>
 
 <div class="mb-3">
   <label class="form-label">Результат расследования</label>
   <textarea [(ngModel)]="resInvest" name="res" class="form-control" rows="3" required></textarea>
+  <button type="button" class="btn btn-outline-secondary mt-2" 
+          (click)="detectParticipants()" 
+          [disabled]="detecting">
+    <span *ngIf="detecting" class="spinner-border spinner-border-sm me-1"></span>
+    <i class="bi bi-search me-1"></i>Определить участников
+  </button>
 </div>
 
 <!-- Участники -->
@@ -31,7 +31,7 @@
       <input [(ngModel)]="p.position" name="pos{{i}}" class="form-control" placeholder="Должность" required/>
     </div>
     <div class="col-2">
-      <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeParticipant(i)">✕</button>
+      <button type="button" class="btn btn-outline-danger btn-sm" (click)="removeParticipant(i)"><i class="bi bi-x-lg"></i></button>
     </div>
   </div>
     <p *ngIf="participants.length === 0" class="text-muted mb-0">Нет участников</p>

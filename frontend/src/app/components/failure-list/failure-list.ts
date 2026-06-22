@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms'; 
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth';
 import { debounceTime, Subject } from 'rxjs';
@@ -16,12 +16,12 @@ export class FailureListComponent implements OnInit {
   records: any[] = [];
   totalCount = 0;
   currentPage = 1;
-  pageSize = 5;
+  pageSize = 10;
   totalPages = 0;
   searchQuery = '';
   private searchSubject = new Subject<string>();
 
-  constructor(private api: ApiService, public auth: AuthService) {}
+  constructor(private api: ApiService, public auth: AuthService, private router: Router) {}
 
   get isAdmin() {
     return this.auth.isAdmin();
@@ -110,18 +110,17 @@ goToLast(): void {
   this.goToPage(this.totalPages);
 }
 
-  delete(id: number): void {
+goToRecord(id: number): void {
+  this.router.navigate(['/failures', id]);
+}
+
+delete(id: number): void {
     if (confirm('Удалить запись?')) {
       this.api.deleteFailureRecord(id).subscribe(() => this.loadPage());
     }
   }
 
-  seedData(): void {
-    if (confirm('Создать 100 тестовых отказов?')) {
-      this.api.seedTestData().subscribe(() => this.loadPage());
-    }
-  }
-showJumpModal = false;
+  showJumpModal = false;
 jumpPage: number | null = null;
 
 // Открыть модальное окно

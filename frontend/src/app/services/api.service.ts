@@ -64,14 +64,6 @@ getComparisonMatrix(failureId: number): Observable<any[]> {
 saveComparisonMatrix(data: any): Observable<any> {
   return this.http.post(`${this.baseUrl}/ComparisonMatrices`, data);
 }
-getParticipantMatrix(failureId: number): Observable<any[]> {
-  return this.http.get<any[]>(`${this.baseUrl}/ParticipantMatrices/by-failure/${failureId}`);
-}
-
-saveParticipantMatrix(data: any): Observable<any> {
-  return this.http.post(`${this.baseUrl}/ParticipantMatrices`, data);
-}
-
 getParticipantMatrixByFactor(failureId: number, factorId: number): Observable<any[]> {
   return this.http.get<any[]>(`${this.baseUrl}/ParticipantMatrices/by-failure/${failureId}/factor/${factorId}`);
 }
@@ -98,9 +90,6 @@ saveQuestionnaireAnswers(data: { failureRecordId: number; answers: { participant
   return this.http.post(`${this.baseUrl}/Questionnaire/save`, data);
 }
 
-getAnalysisRaw(description: string): Observable<any> {
-  return this.http.post(`${this.baseUrl}/FailureRecords/analyze-raw`, { description });
-}
 getUsers(): Observable<any[]> {
   return this.http.get<any[]>(`${this.baseUrl}/Users`);
 }

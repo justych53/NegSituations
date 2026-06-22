@@ -1,5 +1,16 @@
 <div *ngIf="failure" class="container mt-4">
-  <h2>Отказ #{{ failure.id }}</h2>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Отказ #{{ failure.id }}</h2>
+    <div>
+      <ng-container *ngIf="canEdit">
+        <a [routerLink]="['/failures', failure.id, 'edit']" class="btn btn-warning me-2"><i class="bi bi-pencil me-1"></i>Редактировать</a>
+      </ng-container>
+      <ng-container *ngIf="canDelete">
+        <button (click)="deleteFailure()" class="btn btn-danger me-2"><i class="bi bi-trash me-1"></i>Удалить</button>
+      </ng-container>
+      <button (click)="exportToPdf()" class="btn btn-outline-dark"><i class="bi bi-file-earmark-pdf me-1"></i>Экспорт в PDF</button>
+    </div>
+  </div>
   <div class="card mb-3">
     <div class="card-body">
       <h5 class="card-title">{{ failure.descFailure }}</h5>
@@ -13,11 +24,7 @@
     </div>
   </div>
 
-  <!-- Вкладки -->
   <ul class="nav nav-tabs mb-3">
-    <li class="nav-item">
-      <button class="nav-link" [class.active]="activeTab === 'info'" (click)="activeTab = 'info'">Информация</button>
-    </li>
     <li class="nav-item">
       <button class="nav-link" [class.active]="activeTab === 'factors'" (click)="activeTab = 'factors'">Матрица факторов</button>
     </li>
@@ -30,19 +37,6 @@
   </button>
 </li>
   </ul>
-
-  <!-- ======================== ИНФОРМАЦИЯ ======================== -->
-<div *ngIf="activeTab === 'info'">
-  <div class="mb-3">
-    <ng-container *ngIf="canEdit">
-      <a [routerLink]="['/failures', failure.id, 'edit']" class="btn btn-warning me-2">Редактировать</a>
-    </ng-container>
-    <ng-container *ngIf="canDelete">
-      <button (click)="deleteFailure()" class="btn btn-danger me-2">Удалить</button>
-    </ng-container>
-    <button (click)="exportToPdf()" class="btn btn-outline-dark">Экспорт в PDF</button>
-  </div>
-</div>
 
  <!-- ======================== ФАКТОРЫ ======================== -->
 <div *ngIf="activeTab === 'factors'">
@@ -81,12 +75,12 @@
         </tbody>
       </table>
     </div>
-    <button (click)="saveFactors()" class="btn btn-success me-2" *ngIf="canEdit">Сохранить</button>
+    <button (click)="saveFactors()" class="btn btn-success me-2" *ngIf="canEdit"><i class="bi bi-check-lg me-1"></i>Сохранить</button>
     <button (click)="autoFillMatrix()" class="btn btn-outline-info me-2" *ngIf="canEdit" [disabled]="autoFilling">
       <span *ngIf="autoFilling" class="spinner-border spinner-border-sm me-1"></span>
-      Автозаполнение
+      <i class="bi bi-magic me-1"></i>Автозаполнение
     </button>
-    <span *ngIf="factorSaved" class="text-success">✓ Сохранено</span>
+    <span *ngIf="factorSaved" class="text-success"><i class="bi bi-check-circle me-1"></i>Сохранено</span>
 
     <!-- Результаты факторов -->
     <div *ngIf="factorWeights.length > 0" class="card mt-3">
@@ -97,7 +91,7 @@
           <tr *ngFor="let f of factors; let i = index">
             <td>{{ f.name }}</td>
             <td>{{ factorWeights[i] | number:'1.3-3' }}</td>
-            <td><span class="badge bg-primary">{{ getFactorPercent(i) }}%</span></td>
+            <td><span class="badge fw-bold" style="background-color: #1e3a5f; color: #fff; min-width: 4rem; display: inline-block;">{{ getFactorPercent(i) }}%</span></td>
           </tr>
         </table>
 
@@ -164,12 +158,12 @@
       </table>
     </div>
 
-    <button (click)="saveParticipantsForFactor(selectedFactorIndex)" class="btn btn-success me-2" *ngIf="canEdit">Сохранить матрицу</button>
+    <button (click)="saveParticipantsForFactor(selectedFactorIndex)" class="btn btn-success me-2" *ngIf="canEdit"><i class="bi bi-check-lg me-1"></i>Сохранить матрицу</button>
     <button (click)="autoFillMatrix()" class="btn btn-outline-info me-2" *ngIf="canEdit" [disabled]="autoFilling">
       <span *ngIf="autoFilling" class="spinner-border spinner-border-sm me-1"></span>
-      Автозаполнение
+      <i class="bi bi-magic me-1"></i>Автозаполнение
     </button>
-    <span *ngIf="participantSavedByFactor[selectedFactorIndex]" class="text-success">✓ Сохранено</span>
+    <span *ngIf="participantSavedByFactor[selectedFactorIndex]" class="text-success"><i class="bi bi-check-circle me-1"></i>Сохранено</span>
 
     <!-- Локальные веса для фактора -->
     <div *ngIf="currentParticipantWeights.length > 0" class="card mt-3">
@@ -180,7 +174,7 @@
           <tr *ngFor="let p of participants; let i = index">
             <td>{{ p.name }} ({{ p.position }})</td>
             <td>{{ getParticipantWeightByFactor(selectedFactorIndex, i) | number:'1.3-3' }}</td>
-            <td><span class="badge bg-info">{{ getParticipantPercentByFactor(selectedFactorIndex, i) }}%</span></td>
+            <td><span class="badge fw-bold" style="background-color: #3b82f6; color: #fff; min-width: 4rem; display: inline-block;">{{ getParticipantPercentByFactor(selectedFactorIndex, i) }}%</span></td>
           </tr>
         </table>
 
@@ -210,7 +204,7 @@
               <tr *ngFor="let sw of synthesizedWeights">
                 <td>{{ sw.name }}</td>
                 <td *ngFor="let c of sw.contributions">{{ c.contribution | number:'1.3-3' }}</td>
-                <td><span class="badge bg-danger">{{ getSynthesisPercent(sw.weight) }}%</span></td>
+                <td><span class="badge fw-bold" style="background-color: #ef4444; color: #fff; min-width: 4rem; display: inline-block;">{{ getSynthesisPercent(sw.weight) }}%</span></td>
               </tr>
             </tbody>
           </table>
@@ -241,6 +235,6 @@
     </div>
   </div>
   <button class="btn btn-primary" (click)="saveQuestionnaire()" *ngIf="canEdit" [disabled]="participants.length === 0">
-    Сохранить анкету
+    <i class="bi bi-check-lg me-1"></i>Сохранить анкету
   </button>
 </div>

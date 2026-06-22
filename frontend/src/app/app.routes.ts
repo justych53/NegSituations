@@ -1,5 +1,4 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { FailureListComponent } from './components/failure-list/failure-list';
 import { FailureFormComponent } from './components/failure-form/failure-form';
 import { FactorsListComponent } from './components/factors-list/factors-list';
@@ -22,5 +21,3 @@ export const routes: Routes = [
   { path: 'logs', component: LogsListComponent, canActivate: [authGuard] },
   { path: '', redirectTo: '/failures', pathMatch: 'full' }
 ];
-
-export class AppRoutingModule { }

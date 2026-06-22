@@ -8,8 +8,7 @@ import { AuthService } from './services/auth';
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet, RouterLink, CommonModule],
-  templateUrl: './app.html',
-  styleUrls: ['./app.css']
+  templateUrl: './app.html'
 })
 export class AppComponent {
   constructor(public auth: AuthService, private router: Router) {}

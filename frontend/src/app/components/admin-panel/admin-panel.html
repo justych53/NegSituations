@@ -35,7 +35,7 @@
         <td>{{ u.id }}</td>
         <td>{{ u.username }}</td>
         <td><span class="badge bg-success" *ngIf="u.role==='Admin'">Админ</span><span class="badge bg-secondary" *ngIf="u.role==='Expert'">Эксперт</span></td>
-        <td>{{ u.createdAt | date:'short' }}</td>
+        <td>{{ u.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
         <td>
           <button class="btn btn-sm btn-outline-danger" (click)="deleteUser(u.id)" *ngIf="u.role !== 'Admin'">Удалить</button>
         </td>
@@ -44,7 +44,7 @@
   </table>
 </div>
 
-<a class="nav-link" routerLink="/logs" routerLinkActive="active" *ngIf="auth.isAdmin()">Логи</a>
+<a routerLink="/logs" class="btn btn-outline-secondary"><i class="bi bi-journal-text me-2"></i>Журнал действий</a>
 
 <ng-template #notAdmin>
   <div class="alert alert-danger">Доступ запрещён. Только для администраторов.</div>
